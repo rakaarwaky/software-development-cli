@@ -28,9 +28,13 @@ bootstrap_ns_roots()
 
 
 def _wire_capabilities() -> None:
-    """Instantiate the three capabilities and inject them into the surface."""
+    """Instantiate the capabilities and inject them into the surface."""
     from host.src.agent_host_orchestrator import HostAgent
-    from memory.src.capabilities_memory_manager import MemoryStore
+    from memory.src.capabilities_memory_path import CapabilitiesPath
+    from memory.src.capabilities_memory_reader import CapabilitiesReader
+    from memory.src.capabilities_memory_snapshot import CapabilitiesSnapshot
+    from memory.src.capabilities_memory_writer import CapabilitiesWriter
+    from memory.src.agent_memory_orchestrator import AgentMemory
     from planner.src.agent_planner_orchestrator import AgentPlanner
     from planner.src.capabilities_parse_pr_plan import CapabilitiesParsePrPlan
     from planner.src.capabilities_validate_dag import CapabilitiesValidateDag
@@ -43,7 +47,12 @@ def _wire_capabilities() -> None:
 
     set_capabilities(
         host=HostAgent(),
-        memory=MemoryStore(),
+        memory=AgentMemory(
+            path_cap=CapabilitiesPath(),
+            reader_cap=CapabilitiesReader(),
+            snapshot_cap=CapabilitiesSnapshot(),
+            writer_cap=CapabilitiesWriter(),
+        ),
         planner=AgentPlanner(
             parser=parser,
             validator=validator,

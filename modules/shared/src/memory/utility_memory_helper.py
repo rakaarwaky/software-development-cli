@@ -1,10 +1,8 @@
-"""Memory file manager capability (AES capabilities layer).
+"""Memory helper shared utility (AES utility layer).
 
-Ported from ``skills/software-development/implement/scripts/memory.py``.
-
-Implements the ``IMemoryAggregate`` contract: workspace-scoped path
-resolution, concurrency-safe atomic writes, and deterministic dedup +
-compaction.
+Stateless helpers shared across the memory capabilities and agent:
+pure markdown parsing, rendering, lock helpers, and atomic file write.
+No class definitions, no state — pure module-level functions only (AES404).
 """
 
 from __future__ import annotations
@@ -34,7 +32,6 @@ from shared.src.common.taxonomy_sdc_constant import (
     SEVERITY_ORDER,
 )
 from shared.src.common.taxonomy_sdc_error import (
-    HostError,
     LockTimeoutError,
     MemoryHelperError,
     SpecError,
@@ -47,53 +44,10 @@ from shared.src.common.utility_sdc_common import (
     repo_slug,
     sanitize_one_line,
 )
-from shared.src.memory.contract_memory_protocol import IMemoryProtocol
-from shared.src.memory.taxonomy_memory_request import MemoryRequest, MemoryResult
-
-# ─── Block 1: Module Declaration ───────────────────────────────────────
-
-
-class MemoryStore(IMemoryProtocol):
-    """Concrete memory store implementing ``IMemoryProtocol``."""
-
-    # ─── Block 2: Module Contract ──────────────────────────────────────
-
-    def execute(self, request: MemoryRequest) -> MemoryResult:
-        if request.action == "path":
-            return MemoryResult(path=str(memory_paths()["file"]))
-        if request.action == "read":
-            f = memory_paths()["file"]
-            content = f.read_text(encoding="utf-8") if f.exists() else ""
-            return MemoryResult(content=content)
-        if request.action == "snapshot":
-            f = memory_paths()["file"]
-            if f.exists():
-                state = parse_memory_file(f.read_text(encoding="utf-8"))
-                payload = _build_snapshot(state, exists=True)
-            else:
-                payload = _build_snapshot(
-                    {"header": [], "common_issues": OrderedDict(), "recent_runs": []},
-                    exists=False,
-                )
-            return MemoryResult(snapshot=payload)
-        if request.action == "update":
-            return _update(request)
-        raise SpecError(
-            f"memory: unknown action {request.action!r}; "
-            f"expected 'path', 'read', 'snapshot', or 'update'"
-        )
-
-
-# ─── Block 2: Module Contract ──────────────────────────────────────────
 
 
 def get_workspace_id() -> str:
-    """Return ``"<readable-name>-<hash12>"`` identifying this workspace.
-
-    Source preference: canonicalised git remote origin URL → absolute
-    path of ``.git`` common dir → absolute cwd. Raises ``WorkspaceIdError``
-    if all three are unusable.
-    """
+    """Return ``"<readable-name>-<hash12>"`` identifying this workspace."""
     raw_remote = git_output("config", "--get", "remote.origin.url")
     id_source = canonicalize_remote(raw_remote) if raw_remote else ""
 
@@ -124,13 +78,7 @@ def get_workspace_id() -> str:
 
 
 def memory_paths(*, create_dir: bool = False) -> dict[str, Path]:
-    """Return ``{"dir", "file", "lock"}`` for this repo.
-
-    Path is ``~/.agents/develop/<reponame>/memory/<reponame>-<hash12>.md``,
-    matching the per-repo artifact root layout used by the other skills.
-
-    Raises ``WorkspaceIdError`` on unrecoverable HOME / workspace-id failures.
-    """
+    """Return ``{"dir", "file", "lock"}`` for this repo."""
     try:
         home = Path.home()
     except RuntimeError:
@@ -139,7 +87,7 @@ def memory_paths(*, create_dir: bool = False) -> dict[str, Path]:
         )
     try:
         slug = repo_slug()
-    except HostError as exc:
+    except Exception as exc:
         raise WorkspaceIdError(f"could not determine repo slug: {exc}")
     base = home / ".agents" / "develop" / slug / MEMORY_SUBDIR
     if create_dir:
@@ -155,44 +103,8 @@ def memory_paths(*, create_dir: bool = False) -> dict[str, Path]:
     }
 
 
-# ─── Block 3: Module Helpers ───────────────────────────────────────────
-
-
-def _require_str(value: Any, field: str) -> str:
-    if not isinstance(value, str):
-        raise SpecError(f'"{field}" must be a string, got {type(value).__name__}')
-    return value
-
-
-def _require_optional_str(value: Any, field: str) -> str:
-    if value is None:
-        return ""
-    return _require_str(value, field)
-
-
-def _require_list(value: Any, field: str) -> list[Any]:
-    if not isinstance(value, list):
-        raise SpecError(f'"{field}" must be a list, got {type(value).__name__}')
-    return value
-
-
-def _require_dict(value: Any, field: str) -> dict[str, Any]:
-    if not isinstance(value, dict):
-        raise SpecError(f'"{field}" must be an object, got {type(value).__name__}')
-    return value
-
-
-def _require_int(value: Any, field: str) -> int:
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise SpecError(f'"{field}" must be an integer, got {type(value).__name__}')
-    return value
-
-
 def parse_memory_file(content: str) -> dict[str, Any]:
-    """Parse the memory file into a structured dict.
-
-    Returns ``{"header": [...], "common_issues": {cat: [{desc, count}]}, "recent_runs": [...]}``.
-    """
+    """Parse the memory file into a structured dict."""
     state: dict[str, Any] = {
         "header": [],
         "common_issues": OrderedDict(),
@@ -259,13 +171,13 @@ def parse_memory_file(content: str) -> dict[str, Any]:
     if current_run is not None:
         state["recent_runs"].append(current_run)
 
-    state["header"] = _drop_trailing_blank(state["header"])
+    state["header"] = drop_trailing_blank(state["header"])
     for run in state["recent_runs"]:
-        run["body_lines"] = _drop_trailing_blank(run["body_lines"])
+        run["body_lines"] = drop_trailing_blank(run["body_lines"])
     return state
 
 
-def _drop_trailing_blank(lines: list[str]) -> list[str]:
+def drop_trailing_blank(lines: list[str]) -> list[str]:
     """Return a new list with trailing blank/whitespace-only lines removed."""
     end = len(lines)
     while end > 0 and not lines[end - 1].strip():
@@ -278,7 +190,7 @@ def render_memory_file(state: dict[str, Any]) -> str:
     out: list[str] = []
 
     header = state.get("header") or list(DEFAULT_HEADER)
-    out.extend(_drop_trailing_blank(header))
+    out.extend(drop_trailing_blank(header))
     out.append("")
 
     out.append("## Common Issues")
@@ -301,13 +213,13 @@ def render_memory_file(state: dict[str, Any]) -> str:
     out.append("")
     for run in state["recent_runs"]:
         out.append(f"### {run['date']} — {run['description']}")
-        out.extend(_drop_trailing_blank(run.get("body_lines") or []))
+        out.extend(drop_trailing_blank(run.get("body_lines") or []))
         out.append("")
 
     return "\n".join(out).rstrip() + "\n"
 
 
-def _format_severity_summary(ibs: dict[str, int]) -> tuple[str, int]:
+def format_severity_summary(ibs: dict[str, int]) -> tuple[str, int]:
     """Render ``"3 bugs, 4 suggestions"`` and return the total."""
     parts: list[str] = []
     rendered_total = 0
@@ -331,12 +243,12 @@ def _format_severity_summary(ibs: dict[str, int]) -> tuple[str, int]:
     return ", ".join(parts), rendered_total
 
 
-def _bump_or_append(
+def bump_or_append(
     entries: list[dict[str, Any]],
     lookup: dict[str, dict[str, Any]],
     description: str,
 ) -> bool:
-    """Increment matching entry's count, or append a new one. Returns True on match."""
+    """Increment matching entry's count, or append a new one."""
     norm_new = normalize(description)
     match = lookup.get(norm_new)
     if match is not None:
@@ -348,8 +260,8 @@ def _bump_or_append(
     return False
 
 
-def _canonical_category(existing: Any, name: str) -> str:
-    """Return the existing category matching ``name`` ignoring case and whitespace runs."""
+def canonical_category(existing: Any, name: str) -> str:
+    """Return the existing category matching ``name`` ignoring case/whitespace."""
     from shared.src.common.taxonomy_sdc_constant import WHITESPACE_RE
 
     key = WHITESPACE_RE.sub(" ", name).strip().lower()
@@ -373,32 +285,34 @@ def merge_run(state: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
 
     patterns = spec.get("patterns")
     if patterns is not None:
-        patterns = _require_list(patterns, "patterns")
+        if not isinstance(patterns, list):
+            raise SpecError('"patterns" must be a list')
         for idx, raw in enumerate(patterns):
-            field = f"patterns[{idx}]"
-            raw = _require_dict(raw, field)
+            if not isinstance(raw, dict):
+                raise SpecError(f'"patterns[{idx}]" must be an object')
 
             category_raw = raw.get("category")
             if category_raw is None or category_raw == "":
                 category = "Other"
             else:
-                category = sanitize_one_line(_require_str(category_raw, f"{field}.category"))
-                if not category:
-                    category = "Other"
+                if not isinstance(category_raw, str):
+                    raise SpecError(f'"patterns[{idx}].category" must be a string')
+                category = sanitize_one_line(category_raw) or "Other"
 
-            description = sanitize_one_line(
-                _require_optional_str(raw.get("description"), f"{field}.description")
-            )
+            desc_raw = raw.get("description")
+            if desc_raw is not None and not isinstance(desc_raw, str):
+                raise SpecError(f'"patterns[{idx}].description" must be a string')
+            description = sanitize_one_line(desc_raw or "")
             if not description:
                 continue
 
-            category = _canonical_category(state["common_issues"], category)
+            category = canonical_category(state["common_issues"], category)
             entries = state["common_issues"].setdefault(category, [])
             lookup = category_lookups.get(category)
             if lookup is None:
                 lookup = {normalize(e["description"]): e for e in entries}
                 category_lookups[category] = lookup
-            if _bump_or_append(entries, lookup, description):
+            if bump_or_append(entries, lookup, description):
                 stats["merged_patterns"] += 1
             else:
                 stats["new_patterns"] += 1
@@ -413,21 +327,24 @@ def merge_run(state: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
 
     run_raw = spec.get("run")
     if run_raw is not None:
-        run = _require_dict(run_raw, "run")
-        if run:
-            _merge_recent_run(state, run, stats)
+        if not isinstance(run_raw, dict):
+            raise SpecError('"run" must be an object')
+        if run_raw:
+            merge_recent_run(state, run_raw, stats)
 
     stats["categories_touched"] = sorted(touched)
     return stats
 
 
-def _merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[str, Any]) -> None:
+def merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[str, Any]) -> None:
     """Validate and prepend a Recent Runs entry. Updates ``stats`` in place."""
     date_raw = run.get("date")
     if date_raw is None or (isinstance(date_raw, str) and not date_raw.strip()):
         date = datetime.now(UTC).strftime("%Y-%m-%d")
     else:
-        date_str = _require_str(date_raw, "run.date").strip()
+        if not isinstance(date_raw, str):
+            raise SpecError('"run.date" must be a string')
+        date_str = date_raw.strip()
         try:
             datetime.strptime(date_str, "%Y-%m-%d")
         except ValueError:
@@ -437,9 +354,9 @@ def _merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[st
         date = date_str
 
     desc_raw = run.get("description")
-    description = (
-        sanitize_one_line(_require_optional_str(desc_raw, "run.description")) or "(no description)"
-    )
+    if desc_raw is not None and not isinstance(desc_raw, str):
+        raise SpecError('"run.description" must be a string')
+    description = sanitize_one_line(desc_raw or "") or "(no description)"
     description = description.replace('"', "").strip() or "(no description)"
     description = f'"{description}"'
 
@@ -447,42 +364,48 @@ def _merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[st
 
     rounds_raw = run.get("rounds")
     if rounds_raw is not None:
-        rounds = _require_int(rounds_raw, "run.rounds")
-        body_lines.append(f"- **Rounds**: {rounds}")
+        if isinstance(rounds_raw, bool) or not isinstance(rounds_raw, int):
+            raise SpecError('"run.rounds" must be an integer')
+        body_lines.append(f"- **Rounds**: {rounds_raw}")
 
     ibs_raw = run.get("issues_by_severity")
     if ibs_raw is not None:
-        ibs = _require_dict(ibs_raw, "run.issues_by_severity")
+        if not isinstance(ibs_raw, dict):
+            raise SpecError('"run.issues_by_severity" must be an object')
         normalized_ibs: dict[str, int] = {}
-        for sev, count in ibs.items():
+        for sev, count in ibs_raw.items():
             if not isinstance(sev, str):
-                raise SpecError(
-                    f'"run.issues_by_severity" keys must be strings, got {type(sev).__name__}'
-                )
-            normalized_ibs[sev] = _require_int(count, f'run.issues_by_severity["{sev}"]')
+                raise SpecError('"run.issues_by_severity" keys must be strings')
+            if isinstance(count, bool) or not isinstance(count, int):
+                raise SpecError(f'run.issues_by_severity["{sev}"] must be an integer')
+            normalized_ibs[sev] = count
         if normalized_ibs:
-            summary, rendered_total = _format_severity_summary(normalized_ibs)
+            summary, rendered_total = format_severity_summary(normalized_ibs)
             if summary:
                 body_lines.append(f"- **Issues**: {rendered_total} total ({summary})")
 
     key_patterns_raw = run.get("key_patterns")
     if key_patterns_raw is not None:
-        key_patterns = _require_list(key_patterns_raw, "run.key_patterns")
-        cleaned_kp = [
-            sanitize_one_line(_require_str(p, f"run.key_patterns[{i}]"))
-            for i, p in enumerate(key_patterns)
-        ]
+        if not isinstance(key_patterns_raw, list):
+            raise SpecError('"run.key_patterns" must be a list')
+        cleaned_kp = []
+        for i, p in enumerate(key_patterns_raw):
+            if not isinstance(p, str):
+                raise SpecError(f'"run.key_patterns[{i}]" must be a string')
+            cleaned_kp.append(sanitize_one_line(p))
         cleaned_kp = [p for p in cleaned_kp if p]
         if cleaned_kp:
             body_lines.append(f"- **Key patterns**: {', '.join(cleaned_kp)}")
 
     specs_raw = run.get("specializations")
     if specs_raw is not None:
-        specs = _require_list(specs_raw, "run.specializations")
-        cleaned_specs = [
-            sanitize_one_line(_require_str(s, f"run.specializations[{i}]"))
-            for i, s in enumerate(specs)
-        ]
+        if not isinstance(specs_raw, list):
+            raise SpecError('"run.specializations" must be a list')
+        cleaned_specs = []
+        for i, s in enumerate(specs_raw):
+            if not isinstance(s, str):
+                raise SpecError(f'"run.specializations[{i}]" must be a string')
+            cleaned_specs.append(sanitize_one_line(s))
         cleaned_specs = [s for s in cleaned_specs if s]
         if cleaned_specs:
             body_lines.append(f"- **Specializations used**: {', '.join(cleaned_specs)}")
@@ -497,7 +420,7 @@ def _merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[st
         del state["recent_runs"][MAX_RECENT_RUNS:]
 
 
-def _atomic_write(path: Path, content: str) -> None:
+def atomic_write(path: Path, content: str) -> None:
     """Write ``content`` to ``path`` atomically, with mode ``FILE_MODE``."""
     fd, tmp_name = tempfile.mkstemp(
         dir=str(path.parent),
@@ -519,59 +442,15 @@ def _atomic_write(path: Path, content: str) -> None:
         raise
 
 
-def _lock_open_flags() -> int:
-    if os.name == "nt":
-        return os.O_CREAT | os.O_RDWR
+def acquire_lock(lock_path: Path) -> int:
+    """Acquire exclusive lock on ``lock_path``."""
+    import fcntl
+
     flags = os.O_CREAT | os.O_RDONLY
     if hasattr(os, "O_CLOEXEC"):
         flags |= os.O_CLOEXEC
-    return flags
-
-
-def _try_lock(fd: int) -> bool:
-    """Non-blocking exclusive lock. True if acquired."""
-    if os.name == "nt":
-        import msvcrt
-
-        try:
-            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
-            return True
-        except OSError:
-            return False
-    import fcntl
-
     try:
-        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        return True
-    except BlockingIOError:
-        return False
-
-
-def _unlock(fd: int) -> None:
-    if os.name == "nt":
-        import msvcrt
-
-        try:
-            msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
-        except OSError:
-            pass
-        return
-    import fcntl
-
-    try:
-        fcntl.flock(fd, fcntl.LOCK_UN)
-    except OSError:
-        pass
-
-
-def _acquire_lock(lock_path: Path) -> int:
-    """Acquire an exclusive lock on ``lock_path``. Returns the fd to close.
-
-    Raises ``LockTimeoutError`` on timeout. Raises ``MemoryHelperError``
-    if the lock file itself can't be opened.
-    """
-    try:
-        fd = os.open(str(lock_path), _lock_open_flags(), FILE_MODE)
+        fd = os.open(str(lock_path), flags, FILE_MODE)
     except OSError as exc:
         raise MemoryHelperError(f"could not open lock file {lock_path}: {exc}")
     try:
@@ -581,8 +460,11 @@ def _acquire_lock(lock_path: Path) -> int:
             pass
         deadline = time.monotonic() + LOCK_TIMEOUT_SECONDS
         while True:
-            if _try_lock(fd):
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
                 return fd
+            except BlockingIOError:
+                pass
             if time.monotonic() >= deadline:
                 raise LockTimeoutError(
                     f"could not acquire lock on {lock_path} within {LOCK_TIMEOUT_SECONDS}s"
@@ -596,15 +478,22 @@ def _acquire_lock(lock_path: Path) -> int:
         raise
 
 
-def _release_lock(fd: int) -> None:
-    _unlock(fd)
+def release_lock(fd: int) -> None:
+    """Release exclusive lock."""
+    import fcntl
+
+    try:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+    except OSError:
+        pass
     try:
         os.close(fd)
     except OSError:
         pass
 
 
-def _build_snapshot(state: dict[str, Any], *, exists: bool) -> dict[str, Any]:
+def build_snapshot_payload(state: dict[str, Any], *, exists: bool) -> dict[str, Any]:
+    """Build JSON snapshot dict from parsed state."""
     return {
         "common_issues": [
             {
@@ -625,38 +514,3 @@ def _build_snapshot(state: dict[str, Any], *, exists: bool) -> dict[str, Any]:
         ],
         "exists": exists,
     }
-
-
-def _update(request: MemoryRequest) -> MemoryResult:
-    """Merge a JSON spec into the memory file under an exclusive lock."""
-    spec = request.spec
-    if not spec:
-        raise SpecError("update requires a JSON spec")
-
-    paths = memory_paths(create_dir=True)
-    file_path = paths["file"]
-    lock_path = paths["lock"]
-
-    existed_before = file_path.exists()
-    fd = _acquire_lock(lock_path)
-    try:
-        existing = file_path.read_text(encoding="utf-8") if file_path.exists() else ""
-        state = parse_memory_file(existing)
-        stats = merge_run(state, spec)
-        new_content = render_memory_file(state)
-        _atomic_write(file_path, new_content)
-
-        return MemoryResult(
-            file=str(file_path),
-            existed_before=existed_before,
-            stats=stats,
-            total_categories=len(
-                [c for c, e in state["common_issues"].items() if e]
-            ),
-            total_patterns=sum(
-                len(e) for e in state["common_issues"].values()
-            ),
-            total_recent_runs=len(state["recent_runs"]),
-        )
-    finally:
-        _release_lock(fd)

@@ -12,7 +12,6 @@ from shared.src.common.taxonomy_sdc_vo import PrEntry
 from shared.src.planner.contract_planner_protocol import IPlanParseProtocol
 from shared.src.planner.taxonomy_planner_request import ParseResult
 
-
 # ─── Block 1: Module Declaration ──────────────────────────────────────
 
 class CapabilitiesParsePrPlan(IPlanParseProtocol):

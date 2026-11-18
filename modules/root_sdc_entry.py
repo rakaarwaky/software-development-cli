@@ -31,13 +31,24 @@ def _wire_capabilities() -> None:
     """Instantiate the three capabilities and inject them into the surface."""
     from host.src.agent_host_orchestrator import HostAgent
     from memory.src.capabilities_memory_manager import MemoryStore
-    from planner.src.capabilities_plan_validator import PlanValidator
+    from planner.src.agent_planner_orchestrator import AgentPlanner
+    from planner.src.capabilities_parse_pr_plan import CapabilitiesParsePrPlan
+    from planner.src.capabilities_validate_dag import CapabilitiesValidateDag
+    from planner.src.capabilities_compute_execution import CapabilitiesComputeExecution
     from cli.src.surface_sdc_command import set_capabilities
+
+    parser = CapabilitiesParsePrPlan()
+    validator = CapabilitiesValidateDag()
+    computer = CapabilitiesComputeExecution()
 
     set_capabilities(
         host=HostAgent(),
         memory=MemoryStore(),
-        planner=PlanValidator(),
+        planner=AgentPlanner(
+            parser=parser,
+            validator=validator,
+            computer=computer,
+        ),
     )
 
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from shared.src.common.taxonomy_sdc_vo import PrEntry
+
 
 @dataclass(frozen=True)
 class PlanRequest:
@@ -28,6 +30,45 @@ class PlanResult:
 
     valid: bool = False
     pr_count: int = 0
+    levels: int = 0
+    max_parallelism: int = 0
+    linearized_order: list[str] = field(default_factory=list)
+    level_assignments: dict[str, int] = field(default_factory=dict)
+    errors: list[str] = field(default_factory=list)
+
+
+# ─── Capability request/response VOs ───────────────────────────────────
+
+
+@dataclass(frozen=True)
+class PrEntryList:
+    """A parsed list of PR entries from the PR Plan section."""
+
+    entries: list[PrEntry]
+
+
+@dataclass(frozen=True)
+class ParseResult:
+    """Result of parsing the PR Plan section."""
+
+    ok: bool = False
+    entries: list[PrEntry] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class ValidateResult:
+    """Result of validating the PR dependency DAG."""
+
+    ok: bool = False
+    errors: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class ComputeResult:
+    """Result of computing level assignments and linearization."""
+
+    ok: bool = False
     levels: int = 0
     max_parallelism: int = 0
     linearized_order: list[str] = field(default_factory=list)

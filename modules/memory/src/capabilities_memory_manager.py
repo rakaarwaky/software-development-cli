@@ -10,12 +10,11 @@ compaction.
 from __future__ import annotations
 
 import hashlib
-import json
 import os
 import tempfile
 import time
 from collections import OrderedDict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +22,6 @@ from shared.src.common.taxonomy_sdc_constant import (
     CATEGORY_RE,
     DEFAULT_HEADER,
     FILE_MODE,
-    GIT_TIMEOUT_SECONDS,
     ISSUE_RE,
     LOCK_POLL_INTERVAL,
     LOCK_TIMEOUT_SECONDS,
@@ -36,6 +34,7 @@ from shared.src.common.taxonomy_sdc_constant import (
     SEVERITY_ORDER,
 )
 from shared.src.common.taxonomy_sdc_error import (
+    HostError,
     LockTimeoutError,
     MemoryHelperError,
     SpecError,
@@ -48,12 +47,16 @@ from shared.src.common.utility_sdc_common import (
     repo_slug,
     sanitize_one_line,
 )
-from shared.src.memory.contract_memory_aggregate import IMemoryAggregate
+from shared.src.memory.contract_memory_protocol import IMemoryProtocol
 from shared.src.memory.taxonomy_memory_request import MemoryRequest, MemoryResult
 
+# ─── Block 1: Module Declaration ───────────────────────────────────────
 
-class MemoryStore(IMemoryAggregate):
-    """Concrete memory store implementing ``IMemoryAggregate``."""
+
+class MemoryStore(IMemoryProtocol):
+    """Concrete memory store implementing ``IMemoryProtocol``."""
+
+    # ─── Block 2: Module Contract ──────────────────────────────────────
 
     def execute(self, request: MemoryRequest) -> MemoryResult:
         if request.action == "path":
@@ -81,9 +84,7 @@ class MemoryStore(IMemoryAggregate):
         )
 
 
-# ─── Block 1: Module Declaration ───────────────────────────────────────
-
-# ─── Workspace identification ─────────────────────────────────────────
+# ─── Block 2: Module Contract ──────────────────────────────────────────
 
 
 def get_workspace_id() -> str:
@@ -115,8 +116,7 @@ def get_workspace_id() -> str:
     digest = hashlib.sha256(id_source.encode("utf-8")).hexdigest()[:12]
 
     raw_name = id_source.rstrip("/").rsplit("/", 1)[-1]
-    if raw_name.endswith(".git"):
-        raw_name = raw_name[:-4]
+    raw_name = raw_name.removesuffix(".git")
     safe_name = "".join(c if c.isalnum() or c in "._-" else "_" for c in raw_name)
     safe_name = safe_name.strip("_.-")[:40].rstrip("_.-") or "workspace"
 
@@ -139,7 +139,7 @@ def memory_paths(*, create_dir: bool = False) -> dict[str, Path]:
         )
     try:
         slug = repo_slug()
-    except Exception as exc:
+    except HostError as exc:
         raise WorkspaceIdError(f"could not determine repo slug: {exc}")
     base = home / ".agents" / "develop" / slug / MEMORY_SUBDIR
     if create_dir:
@@ -155,7 +155,7 @@ def memory_paths(*, create_dir: bool = False) -> dict[str, Path]:
     }
 
 
-# ─── Type validation helpers ──────────────────────────────────────────
+# ─── Block 3: Module Helpers ───────────────────────────────────────────
 
 
 def _require_str(value: Any, field: str) -> str:
@@ -186,9 +186,6 @@ def _require_int(value: Any, field: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise SpecError(f'"{field}" must be an integer, got {type(value).__name__}')
     return value
-
-
-# ─── Markdown parsing & rendering ─────────────────────────────────────
 
 
 def parse_memory_file(content: str) -> dict[str, Any]:
@@ -310,9 +307,6 @@ def render_memory_file(state: dict[str, Any]) -> str:
     return "\n".join(out).rstrip() + "\n"
 
 
-# ─── Merge logic ──────────────────────────────────────────────────────
-
-
 def _format_severity_summary(ibs: dict[str, int]) -> tuple[str, int]:
     """Render ``"3 bugs, 4 suggestions"`` and return the total."""
     parts: list[str] = []
@@ -431,7 +425,7 @@ def _merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[st
     """Validate and prepend a Recent Runs entry. Updates ``stats`` in place."""
     date_raw = run.get("date")
     if date_raw is None or (isinstance(date_raw, str) and not date_raw.strip()):
-        date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        date = datetime.now(UTC).strftime("%Y-%m-%d")
     else:
         date_str = _require_str(date_raw, "run.date").strip()
         try:
@@ -501,9 +495,6 @@ def _merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[st
     if len(state["recent_runs"]) > MAX_RECENT_RUNS:
         stats["recent_runs_dropped"] = len(state["recent_runs"]) - MAX_RECENT_RUNS
         del state["recent_runs"][MAX_RECENT_RUNS:]
-
-
-# ─── File I/O with locking ────────────────────────────────────────────
 
 
 def _atomic_write(path: Path, content: str) -> None:
@@ -613,9 +604,6 @@ def _release_lock(fd: int) -> None:
         pass
 
 
-# ─── Snapshot builder ─────────────────────────────────────────────────
-
-
 def _build_snapshot(state: dict[str, Any], *, exists: bool) -> dict[str, Any]:
     return {
         "common_issues": [
@@ -637,13 +625,6 @@ def _build_snapshot(state: dict[str, Any], *, exists: bool) -> dict[str, Any]:
         ],
         "exists": exists,
     }
-
-
-# ─── Block 2: Module Contract ──────────────────────────────────────────
-
-# (Implemented inline in MemoryStore.execute above.)
-
-# ─── Block 3: Module Helpers ───────────────────────────────────────────
 
 
 def _update(request: MemoryRequest) -> MemoryResult:

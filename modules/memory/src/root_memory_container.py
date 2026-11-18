@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from shared.src.memory.contract_memory_aggregate import IMemoryAggregate
+
 from modules.memory.src.agent_memory_orchestrator import AgentMemory
 from modules.memory.src.capabilities_memory_path import CapabilitiesPath
 from modules.memory.src.capabilities_memory_reader import CapabilitiesReader
 from modules.memory.src.capabilities_memory_snapshot import CapabilitiesSnapshot
 from modules.memory.src.capabilities_memory_writer import CapabilitiesWriter
-from shared.src.memory.contract_memory_aggregate import IMemoryAggregate
 
 
 class MemoryContainer:

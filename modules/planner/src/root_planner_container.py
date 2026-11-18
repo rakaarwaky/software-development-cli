@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from shared.src.planner.contract_planner_aggregate import IPlanAggregate
+
 from modules.planner.src.agent_planner_orchestrator import AgentPlanner
-from modules.planner.src.capabilities_compute_execution import CapabilitiesComputeExecution
+from modules.planner.src.capabilities_compute_execution import (
+    CapabilitiesComputeExecution,
+)
 from modules.planner.src.capabilities_parse_pr_plan import CapabilitiesParsePrPlan
 from modules.planner.src.capabilities_validate_dag import CapabilitiesValidateDag
-from shared.src.planner.contract_planner_aggregate import IPlanAggregate
 
 
 class PlannerContainer:

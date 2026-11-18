@@ -6,19 +6,51 @@ The memory helper feature is implemented: per-repo memory under `~/.agents/devel
 
 ## Backlog Status
 
-| ID | Status | Description | Priority |
-|----|--------|-------------|----------|
-| BL-MEM-001 | Done | Per-repo memory root (`memory/`) under the host setup | P0 |
-| BL-MEM-002 | Done | Markdown read, snapshot, and update actions | P0 |
-| BL-MEM-003 | Done | Merge-on-update (append missing lines to the target section) | P0 |
-| BL-MEM-004 | Done | File lock for concurrent agent writes | P0 |
-| BL-MEM-005 | Done | AGENTS.md conflict check + backup before merge | P0 |
-| BL-MEM-006 | Done | Canonical block markers in capability implementation | P0 |
-| BL-MEM-007 | Todo | Memory migration (merge legacy `MEMORY.md` into topic files) | P2 |
+### FR-MEM-001: Resolve memory path
+
+| Aspect       | Detail                                      |
+|--------------|---------------------------------------------|
+| State        | Done                                        |
+| Done         | Deterministic `~/.agents/develop/<slug>/memory/<id>.md` path resolution with workspace id `^[a-z0-9._-]+-[0-9a-f]{12}$` |
+| In Progress  | None                                        |
+| Risk         | None                                        |
+| Updated      | 2026-11-18                                  |
+
+### FR-MEM-002: Read memory content
+
+| Aspect       | Detail                                      |
+|--------------|---------------------------------------------|
+| State        | Done                                        |
+| Done         | Raw UTF-8 markdown read; empty string for missing file; exit 0 |
+| In Progress  | None                                        |
+| Risk         | None                                        |
+| Updated      | 2026-11-18                                  |
+
+### FR-MEM-003: Snapshot memory state
+
+| Aspect       | Detail                                      |
+|--------------|---------------------------------------------|
+| State        | Done                                        |
+| Done         | Structured `{common_issues, recent_runs, exists}` JSON snapshot with case-insensitive category matching and dedup normalisation |
+| In Progress  | None                                        |
+| Risk         | None                                        |
+| Updated      | 2026-11-18                                  |
+
+### FR-MEM-004: Update memory file
+
+| Aspect       | Detail                                      |
+|--------------|---------------------------------------------|
+| State        | Done                                        |
+| Done         | Exclusive `flock` (30s/0.2s) + atomic `tempfile.mkstemp`/`os.replace` write at `0o600`; dedup, category cap 25, recent runs cap 20 |
+| In Progress  | None                                        |
+| Risk         | None                                        |
+| Updated      | 2026-11-18                                  |
 
 ## Reference
 
-- [ARCHITECTURE.md](../../ARCHITECTURE.md)
-- [FRD.md](FRD.md)
-- [PRD.md](../../PRD.md)
-- [ROADMAP.md](../../ROADMAP.md)
+| Artifact     | Purpose                                         | Link |
+|--------------|-------------------------------------------------|------|
+| PRD          | Business goals, user stories, and scope         | [PRD.md](../../PRD.md) |
+| FRD          | Functional requirements specification           | [FRD.md](FRD.md) |
+| Roadmap      | Timeline, phasing, and dependencies             | [ROADMAP.md](../../ROADMAP.md) |
+| Architecture | System boundaries, tech stack, and infra        | [ARCHITECTURE.md](../../ARCHITECTURE.md) |

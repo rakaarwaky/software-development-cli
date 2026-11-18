@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from shared.src.host.contract_host_aggregate import IHostAggregate
-from shared.src.host.contract_host_protocol import IHostCleanupProtocol, IHostSetupProtocol
+
 from modules.host.src.agent_host_orchestrator import HostAgent
 from modules.host.src.capabilities_host_cleanup import CapabilitiesHostCleanup
 from modules.host.src.capabilities_host_setup import CapabilitiesHostSetup
@@ -13,12 +13,6 @@ class HostContainer:
     """Construct the host capabilities and orchestrator (wiring only)."""
 
     def __init__(self) -> None:
-        runners: list[IHostSetupProtocol] = [
-            CapabilitiesHostSetup(),
-        ]
-        cleanup_runners: list[IHostCleanupProtocol] = [
-            CapabilitiesHostCleanup(),
-        ]
         self._orchestrator = HostAgent(
             setup_cap=CapabilitiesHostSetup(),
             cleanup_cap=CapabilitiesHostCleanup(),

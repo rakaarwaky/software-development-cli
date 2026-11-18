@@ -9,7 +9,7 @@ from __future__ import annotations
 import re
 import shutil
 import stat
-import subprocess
+import subprocess  # nosec: trusted system git/python calls
 import sys
 from pathlib import Path
 
@@ -94,7 +94,7 @@ def repo_name_from_remote() -> str | None:
     Returns ``None`` when no origin remote is configured or git fails.
     """
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec: git args are internally built
             [_git_executable(), "remote", "get-url", "origin"],
             capture_output=True,
             check=False,
@@ -121,7 +121,7 @@ def repo_slug() -> str:
     repository or the slug cannot be derived.
     """
     try:
-        toplevel_result = subprocess.run(
+        toplevel_result = subprocess.run(  # nosec: git args are internally built
             [_git_executable(), "rev-parse", "--show-toplevel"],
             capture_output=True,
             check=False,
@@ -221,7 +221,7 @@ def normalize(text: str) -> str:
 def git_output(*args: str) -> str | None:
     """Run a git command and return stripped stdout, or None on failure."""
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec: git args are internally built
             [_git_executable(), *args],
             capture_output=True,
             text=True,

@@ -13,7 +13,7 @@ from __future__ import annotations
 import os
 import shutil
 import stat
-import subprocess
+import subprocess  # nosec: trusted system git/python calls
 import sys
 import uuid
 from pathlib import Path
@@ -66,7 +66,7 @@ def repo_slug() -> str:
     repository or the slug cannot be derived.
     """
     try:
-        toplevel_result = subprocess.run(
+        toplevel_result = subprocess.run(  # nosec: git args are internally built
             [_git_executable(), "rev-parse", "--show-toplevel"],
             capture_output=True,
             check=False,
@@ -117,7 +117,7 @@ def _repo_name_from_remote() -> str | None:
     Returns ``None`` when no origin remote is configured or git fails.
     """
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec: git args are internally built
             [_git_executable(), "remote", "get-url", "origin"],
             capture_output=True,
             check=False,

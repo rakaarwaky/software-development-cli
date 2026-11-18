@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
-import subprocess
+import subprocess  # nosec: trusted system git/python calls
 import tempfile
 import time
 from collections import OrderedDict
@@ -103,7 +103,7 @@ def _normalize(text: str) -> str:
 def _repo_slug() -> str:
     """Return the git repository slug (from remote origin, else git toplevel dir name)."""
     try:
-        toplevel_result = subprocess.run(
+        toplevel_result = subprocess.run(  # nosec: git args are internally built
             [_git_executable(), "rev-parse", "--show-toplevel"],
             capture_output=True,
             check=False,
@@ -117,7 +117,7 @@ def _repo_slug() -> str:
         raise HostError("host: not inside a git repository")
 
     try:
-        remote_result = subprocess.run(
+        remote_result = subprocess.run(  # nosec: git args are internally built
             [_git_executable(), "remote", "get-url", "origin"],
             capture_output=True,
             check=False,
@@ -157,7 +157,7 @@ def _slugify(name: str) -> str:
 def _git_output(*args: str) -> str | None:
     """Run a git command and return stripped stdout, or None on failure."""
     try:
-        result = subprocess.run(
+        result = subprocess.run(  # nosec: git args are internally built
             [_git_executable(), *args],
             capture_output=True,
             text=True,

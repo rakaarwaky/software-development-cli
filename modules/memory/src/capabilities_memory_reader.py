@@ -24,7 +24,10 @@ class CapabilitiesReader(IMemoryReaderProtocol):
     def read_content(self) -> str:
         _ = WorkspaceId(get_workspace_id())
         f = memory_paths()["file"]
-        return f.read_text(encoding="utf-8") if f.exists() else ""
+        try:
+            return f.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return ""
 
     # ─── Block 3: Module Helpers ───────────────────────────────────────
 

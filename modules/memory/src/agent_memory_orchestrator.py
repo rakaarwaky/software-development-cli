@@ -6,6 +6,7 @@ and returns a MemoryResult. No I/O, no computation — pure dispatch.
 
 from __future__ import annotations
 
+from shared.src.common.taxonomy_sdc_error import SpecError
 from shared.src.memory.contract_memory_aggregate import IMemoryAggregate
 from shared.src.memory.contract_memory_protocol import (
     IMemoryPathProtocol,
@@ -48,7 +49,7 @@ class AgentMemory(IMemoryAggregate):
             return MemoryResult(snapshot=self._snapshot.read_snapshot())
         if request.action == "update":
             return self._writer.update(request.spec)
-        raise ValueError(
+        raise SpecError(
             f"memory: unknown action {request.action!r}; "
             "expected 'path', 'read', 'snapshot', or 'update'"
         )

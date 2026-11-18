@@ -17,6 +17,12 @@ from shared.src.memory.utility_memory_helper import (
 
 # ─── Block 1: Module Declaration ───────────────────────────────────────
 
+_EMPTY_STATE: dict[str, object] = {
+    "header": [],
+    "common_issues": {},
+    "recent_runs": [],
+}
+
 
 class CapabilitiesSnapshot(IMemorySnapshotProtocol):
     """Structured parsing capability."""
@@ -29,12 +35,12 @@ class CapabilitiesSnapshot(IMemorySnapshotProtocol):
     def read_snapshot(self) -> dict[str, object]:
         _ = WorkspaceId(get_workspace_id())
         f = memory_paths()["file"]
-        if f.exists():
+        try:
             state = parse_memory_file(f.read_text(encoding="utf-8"))
             payload = build_snapshot_payload(state, exists=True)
-        else:
+        except FileNotFoundError:
             payload = build_snapshot_payload(
-                {"header": [], "common_issues": {}, "recent_runs": []},
+                _EMPTY_STATE,
                 exists=False,
             )
         return payload

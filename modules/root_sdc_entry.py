@@ -13,7 +13,11 @@ from pathlib import Path
 _MODULES_ROOT = Path(__file__).resolve().parent
 
 # Bootstrap sys.path so bare intra-module imports resolve.
-for _m in ("shared", "cli", "planner", "memory"):
+_TOOLS_ROOT = _MODULES_ROOT.parent
+if str(_TOOLS_ROOT) not in sys.path:
+    sys.path.append(str(_TOOLS_ROOT))
+
+for _m in ("shared", "cli", "planner", "memory", "host"):
     _src = _MODULES_ROOT / _m / "src"
     if _src.is_dir():
         _p = str(_src)

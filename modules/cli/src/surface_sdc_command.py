@@ -82,7 +82,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def _dispatch_host(args: argparse.Namespace) -> int:
     if args.host_cmd == "setup":
         request = HostRequest(action="setup", subdir=args.subdir)
-        result = _call_host(request)
+        result = _call_host(request, subdir=args.subdir)
         json.dump(
             {
                 "python": result.python,
@@ -96,7 +96,7 @@ def _dispatch_host(args: argparse.Namespace) -> int:
         return 0
     if args.host_cmd == "cleanup":
         request = HostRequest(action="cleanup", paths=args.paths)
-        result = _call_host(request)
+        result = _call_host(request, subdir="")
         return 1 if result.failed_count else 0
     return 2
 
@@ -176,27 +176,36 @@ def _read_update_spec(args: argparse.Namespace) -> dict:
 
 # ─── Capability dispatch (injected by root) ────────────────────────────
 
-_HOST_CAPABILITY: object | None = None
+_HOST_CAPABILITIES: dict = {}
 _MEMORY_CAPABILITY: object | None = None
 _PLANNER_CAPABILITY: object | None = None
 
 
 def set_capabilities(
-    host: object,
+    host: dict,
     memory: object,
     planner: object,
 ) -> None:
     """Inject the capability instances. Called by the root entry."""
-    global _HOST_CAPABILITY, _MEMORY_CAPABILITY, _PLANNER_CAPABILITY
-    _HOST_CAPABILITY = host
+    global _HOST_CAPABILITIES, _MEMORY_CAPABILITY, _PLANNER_CAPABILITY
+    _HOST_CAPABILITIES = host
     _MEMORY_CAPABILITY = memory
     _PLANNER_CAPABILITY = planner
 
 
-def _call_host(request: HostRequest) -> HostResult:
-    if _HOST_CAPABILITY is None:
+def _call_host(request: HostRequest, *, subdir: str) -> HostResult:
+    """Route a host request to the right per-skill capability.
+
+    ``subdir`` selects which capability to use:
+    - ``implement`` → HostImplement
+    - ``plan`` → HostDesign
+    - ``execute`` → HostExecute
+    - ``""`` (cleanup) → any capability (they share cleanup logic)
+    """
+    capability = _HOST_CAPABILITIES.get(subdir) or _HOST_CAPABILITIES.get("implement")
+    if capability is None:
         raise HostError("host capability not wired; call set_capabilities first")
-    return _HOST_CAPABILITY.execute(request)
+    return capability.execute(request)
 
 
 def _call_memory(request: MemoryRequest) -> MemoryResult:

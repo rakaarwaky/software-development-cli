@@ -29,13 +29,19 @@ bootstrap_ns_roots()
 
 def _wire_capabilities() -> None:
     """Instantiate the three capabilities and inject them into the surface."""
-    from cli.src.capabilities_host_helper import HostHelper
+    from host.src.capabilities_host_implement import HostImplement
+    from host.src.capabilities_host_design import HostDesign
+    from host.src.capabilities_host_execute import HostExecute
     from memory.src.capabilities_memory_store import MemoryStore
     from planner.src.capabilities_plan_validator import PlanValidator
     from cli.src.surface_sdc_command import set_capabilities
 
     set_capabilities(
-        host=HostHelper(),
+        host={
+            "implement": HostImplement(),
+            "design": HostDesign(),
+            "execute": HostExecute(),
+        },
         memory=MemoryStore(),
         planner=PlanValidator(),
     )

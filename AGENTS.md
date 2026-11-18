@@ -42,7 +42,7 @@ keep every flag and subcommand term in lockstep across `README.md`,
 │   └── install.sh              # XDG bin installer
 └── modules/                    # AES layer implementation
     ├── cli/                    # Surface layer (CLI dispatch)
-    │   ├── src/                # capabilities_host_helper + surface_sdc_command
+    │   ├── src/                # surface_sdc_command
     │   ├── FRD.md              # Feature requirements
     │   └── BACKLOG.md          # Feature backlog
     ├── planner/                # PR Plan validator feature
@@ -54,7 +54,7 @@ keep every flag and subcommand term in lockstep across `README.md`,
     │   ├── FRD.md
     │   └── BACKLOG.md
     ├── host/                   # Host helper feature
-    │   ├── src/                # (capabilities in cli, contracts in shared)
+    │   ├── src/                # capabilities_host_helper
     │   ├── FRD.md
     │   └── BACKLOG.md
     ├── shared/                 # Shared kernel

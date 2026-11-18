@@ -1,5 +1,9 @@
 # DATA — Shared Kernel
 
+## Data Overview
+
+The shared kernel provides taxonomy constants, error types, value objects, and stateless utilities consumed by all feature modules (cli, host, memory, planner). These data shapes define the contracts that every capability implements and the error taxonomy the CLI surface uses to classify failures.
+
 ## Data Requirements
 
 ### DT-SDC-001: Taxonomy Constants

@@ -6,7 +6,7 @@ memory file under ~/.agents/develop/<repo>/memory/.
 
 from __future__ import annotations
 
-from shared.src.common.taxonomy_sdc_vo import WorkspaceId
+from shared.src.common.taxonomy_sdc_vo import MemoryContent, WorkspaceId
 from shared.src.memory.contract_memory_protocol import IMemoryReaderProtocol
 from shared.src.memory.utility_memory_helper import get_workspace_id, memory_paths
 
@@ -21,13 +21,14 @@ class CapabilitiesReader(IMemoryReaderProtocol):
 
     # ─── Block 2: Module Contract ──────────────────────────────────────
 
-    def read_content(self) -> str:
+    def read_content(self) -> MemoryContent:
         _ = WorkspaceId(get_workspace_id())
         f = memory_paths()["file"]
         try:
-            return f.read_text(encoding="utf-8")
+            content = f.read_text(encoding="utf-8")
         except FileNotFoundError:
-            return ""
+            content = ""
+        return MemoryContent(content)
 
     # ─── Block 3: Module Helpers ───────────────────────────────────────
 

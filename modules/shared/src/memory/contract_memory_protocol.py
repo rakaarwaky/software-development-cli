@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
+from shared.src.common.taxonomy_sdc_vo import MemoryContent
 from shared.src.memory.taxonomy_memory_request import MemoryResult
 
 
@@ -29,7 +30,7 @@ class IMemoryReaderProtocol(ABC):
     """Raw content reading capability seam for the memory file."""
 
     @abstractmethod
-    def read_content(self) -> str:
+    def read_content(self) -> MemoryContent:
         """Read and return raw memory markdown content, or empty string if missing."""
         ...
 
@@ -47,7 +48,7 @@ class IMemoryWriterProtocol(ABC):
     """Exclusive-lock update capability seam for the memory file."""
 
     @abstractmethod
-    def update(self, spec: dict) -> MemoryResult:
+    def update(self, spec: dict[str, Any]) -> MemoryResult:
         """Merge a run spec into the memory file under exclusive lock; return stats."""
         ...
 

@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
+import subprocess
 import tempfile
 import time
 from collections import OrderedDict
@@ -17,19 +19,28 @@ from pathlib import Path
 from typing import Any
 
 from shared.src.common.taxonomy_sdc_constant import (
+    CASE_INSENSITIVE_HOSTS,
     CATEGORY_RE,
     DEFAULT_HEADER,
+    DEVELOP_ROOT_DIRNAME,
+    DEVELOP_ROOT_SUBDIR,
     FILE_MODE,
+    GIT_TIMEOUT_SECONDS,
     ISSUE_RE,
     LOCK_POLL_INTERVAL,
     LOCK_TIMEOUT_SECONDS,
     MAX_PATTERNS_PER_CATEGORY,
     MAX_RECENT_RUNS,
     MEMORY_SUBDIR,
+    PUNCT_TAIL_RE,
     RUN_RE,
     SECTION_COMMON_ISSUES_RE,
     SECTION_RECENT_RUNS_RE,
     SEVERITY_ORDER,
+    SSH_BARE_REMOTE_RE,
+    SSH_REMOTE_RE,
+    URL_REMOTE_RE,
+    WHITESPACE_RE,
 )
 from shared.src.common.taxonomy_sdc_error import (
     HostError,
@@ -38,22 +49,134 @@ from shared.src.common.taxonomy_sdc_error import (
     SpecError,
     WorkspaceIdError,
 )
-from shared.src.common.utility_sdc_common import (
-    canonicalize_remote,
-    git_output,
-    normalize,
-    repo_slug,
-    sanitize_one_line,
-)
+
+
+# ─── Inlined helpers (avoid utility→utility self-import, AES201) ────────
+
+
+def _canonicalize_remote(url: str) -> str:
+    """Normalise a git remote URL to a stable key."""
+    url = url.strip().rstrip("/")
+    while url.endswith(".git"):
+        url = url[:-4]
+    m = SSH_REMOTE_RE.match(url)
+    if m:
+        host = m.group(1).lower()
+        path = m.group(2)
+        if host in CASE_INSENSITIVE_HOSTS:
+            path = path.lower()
+        return f"{host}/{path}"
+    m = SSH_BARE_REMOTE_RE.match(url)
+    if m:
+        host = m.group(1).lower()
+        path = m.group(2)
+        if host in CASE_INSENSITIVE_HOSTS:
+            path = path.lower()
+        return f"{host}/{path}"
+    m = URL_REMOTE_RE.match(url)
+    if m:
+        host = m.group(1).lower()
+        path = m.group(2)
+        if host in CASE_INSENSITIVE_HOSTS:
+            path = path.lower()
+        return f"{host}{path}"
+    return url
+
+
+def _sanitize_one_line(text: str) -> str:
+    """Collapse line-breaking whitespace to single spaces; strip outer whitespace."""
+    return re.sub(r"[\r\n\t]+", " ", text).strip()
+
+
+def _normalize(text: str) -> str:
+    """Collapse a description to a canonical form for dedup matching."""
+    text = text.lower().strip()
+    text = PUNCT_TAIL_RE.sub("", text)
+    return WHITESPACE_RE.sub(" ", text)
+
+
+def _repo_slug() -> str:
+    """Return the git repository slug (from remote origin, else git toplevel dir name)."""
+    try:
+        toplevel_result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=GIT_TIMEOUT_SECONDS,
+        )
+    except (OSError, subprocess.SubprocessError):
+        raise HostError("host: git command failed")
+
+    if toplevel_result.returncode != 0 or not toplevel_result.stdout.strip():
+        raise HostError("host: not inside a git repository")
+
+    try:
+        remote_result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=GIT_TIMEOUT_SECONDS,
+        )
+    except (OSError, subprocess.SubprocessError):
+        remote_result = None
+
+    if remote_result is not None and remote_result.returncode == 0 and remote_result.stdout.strip():
+        url = remote_result.stdout.strip().rstrip("/")
+        while url.endswith(".git"):
+            url = url[:-4]
+        if ":" in url and "//" not in url:
+            url = url.rsplit(":", 1)[-1]
+        name = url.rsplit("/", 1)[-1]
+        if name:
+            slug = _slugify(name)
+            if slug:
+                return slug
+
+    name = Path(toplevel_result.stdout.strip()).name
+    slug = _slugify(name)
+    if not slug:
+        raise HostError("host: could not derive project repo name from git root")
+    return slug
+
+
+def _slugify(name: str) -> str:
+    """Slugify ``name`` to lowercase-alphanumeric-plus-dash."""
+    _invalid_re = re.compile(r"[^a-z0-9-]+")
+    _dash_re = re.compile(r"-{2,}")
+    slug = _invalid_re.sub("-", name.lower()).strip("-")
+    return _dash_re.sub("-", slug)
+
+
+def _git_output(*args: str) -> str | None:
+    """Run a git command and return stripped stdout, or None on failure."""
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=GIT_TIMEOUT_SECONDS,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0:
+        return None
+    out = result.stdout.strip()
+    return out or None
+
+
+# ─── End inlined helpers ────────────────────────────────────────────────
 
 
 def get_workspace_id() -> str:
     """Return ``"<readable-name>-<hash12>"`` identifying this workspace."""
-    raw_remote = git_output("config", "--get", "remote.origin.url")
-    id_source = canonicalize_remote(raw_remote) if raw_remote else ""
+    raw_remote = _git_output("config", "--get", "remote.origin.url")
+    id_source = _canonicalize_remote(raw_remote) if raw_remote else ""
 
     if not id_source:
-        common_dir = git_output("rev-parse", "--git-common-dir")
+        common_dir = _git_output("rev-parse", "--git-common-dir")
         if common_dir:
             try:
                 id_source = str(Path(common_dir).resolve(strict=False))
@@ -87,7 +210,7 @@ def memory_paths(*, create_dir: bool = False) -> dict[str, Path]:
             "could not determine the user's home directory ($HOME unset and pwd lookup failed)"
         )
     try:
-        slug = repo_slug()
+        slug = _repo_slug()
     except HostError as exc:
         raise WorkspaceIdError(f"could not determine repo slug: {exc}")
     base = home / ".agents" / "develop" / slug / MEMORY_SUBDIR
@@ -250,7 +373,7 @@ def bump_or_append(
     description: str,
 ) -> bool:
     """Increment matching entry's count, or append a new one."""
-    norm_new = normalize(description)
+    norm_new = _normalize(description)
     match = lookup.get(norm_new)
     if match is not None:
         match["count"] += 1

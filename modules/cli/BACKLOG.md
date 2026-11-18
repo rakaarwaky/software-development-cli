@@ -15,9 +15,52 @@ The `sdc` surface is implemented: stdlib-only argument parsing with host, memory
 | BL-CLI-005 | Done | Exit codes 0/1/2/3/4 with stderr messages | P0 |
 | BL-CLI-006 | Done | Capabilities injected via `set_capabilities` from the root entry | P0 |
 
+### FR-CLI-001: Subcommand Dispatch
+
+| Aspect       | Detail                                       |
+|--------------|----------------------------------------------|
+| State        | Done                                         |
+| Done         | `cmd_sdc` parses argv and dispatches to host/memory/planner aggregates |
+| In Progress  | None                                         |
+| Risk         | None                                         |
+| Updated      | 2026-11-18                                   |
+
+### FR-CLI-002: Host Subcommand
+
+| Aspect       | Detail                                       |
+|--------------|----------------------------------------------|
+| State        | Done                                         |
+| Done         | `sdc host setup --subdir` and `sdc host cleanup` implemented |
+| In Progress  | None                                         |
+| Risk         | None                                         |
+| Updated      | 2026-11-18                                   |
+
+### FR-CLI-003: Memory Subcommand
+
+| Aspect       | Detail                                       |
+|--------------|----------------------------------------------|
+| State        | Done                                         |
+| Done         | `sdc memory path|read|snapshot|update` implemented |
+| In Progress  | None                                         |
+| Risk         | None                                         |
+| Updated      | 2026-11-18                                   |
+
+### FR-CLI-004: Validate-Plan Subcommand
+
+| Aspect       | Detail                                       |
+|--------------|----------------------------------------------|
+| State        | Done                                         |
+| Done         | `sdc validate-plan <plan-file>` implemented |
+| In Progress  | None                                         |
+| Risk         | None                                         |
+| Updated      | 2026-11-18                                   |
+
 ## Reference
 
-- [ARCHITECTURE.md](../../ARCHITECTURE.md)
-- [FRD.md](FRD.md)
-- [PRD.md](../../PRD.md)
-- [ROADMAP.md](../../ROADMAP.md)
+| Artifact     | Purpose                                    | Link |
+|--------------|--------------------------------------------|------|
+| DESIGN       | Surface layer design contract              | [DESIGN.md](DESIGN.md) |
+| ARCHITECTURE | System boundaries, tech stack, and infra   | [ARCHITECTURE.md](../../ARCHITECTURE.md) |
+| FRD          | Functional requirements specification      | [FRD.md](FRD.md) |
+| PRD          | Business goals, user stories, and scope    | [PRD.md](../../PRD.md) |
+| Roadmap      | Timeline, phasing, and dependencies        | [ROADMAP.md](../../ROADMAP.md) |

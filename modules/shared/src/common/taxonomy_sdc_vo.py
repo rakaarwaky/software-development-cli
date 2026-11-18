@@ -47,6 +47,9 @@ PatternCategory = NewType("PatternCategory", str)
 PatternCount = NewType("PatternCount", int)
 """Number of times a pattern has been seen (increments on each dedup match)."""
 
+MemoryContent = NewType("MemoryContent", str)
+"""Raw markdown content of the memory file (empty string when missing)."""
+
 
 @dataclass(frozen=True)
 class Pattern:

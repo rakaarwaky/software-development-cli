@@ -26,7 +26,6 @@ from shared.src.common.taxonomy_sdc_error import (
     PlanParseError,
     PlanUsageError,
     PlanValidationError,
-    SdcError,
     SpecError,
     WorkspaceIdError,
 )
@@ -264,7 +263,7 @@ def cmd_sdc(argv: list[str]) -> int:
         return getattr(exc, "exit_code", 1)
     except KeyboardInterrupt:
         raise
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — intentional final safety net for unforeseen errors
         import traceback
 
         traceback.print_exc()

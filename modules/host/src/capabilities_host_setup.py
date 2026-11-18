@@ -6,6 +6,7 @@ Implements IHostSetupProtocol: creates the per-repo artifact root under
 
 from __future__ import annotations
 
+from shared.src.common.taxonomy_sdc_vo import SkillSubdir
 from shared.src.host.contract_host_protocol import IHostSetupProtocol
 from shared.src.host.taxonomy_host_request import HostResult
 from shared.src.host.utility_host_helper import (
@@ -21,9 +22,9 @@ class CapabilitiesHostSetup(IHostSetupProtocol):
 
     # ─── Block 2: Module Contract ──────────────────────────────────────
 
-    def setup(self, subdir: str) -> HostResult:
-        resolve_subdir(subdir)
-        return make_setup_result(subdir)
+    def setup(self, subdir: SkillSubdir) -> HostResult:
+        validated = resolve_subdir(subdir)
+        return make_setup_result(validated)
 
     # ─── Block 3: Module Helpers ───────────────────────────────────────
 

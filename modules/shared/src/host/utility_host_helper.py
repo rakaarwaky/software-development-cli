@@ -11,6 +11,7 @@ No class definitions, no state — pure functions only (AES404).
 from __future__ import annotations
 
 import stat
+import sys
 import uuid
 from pathlib import Path
 
@@ -82,6 +83,6 @@ def make_cleanup_result(paths: list[str]) -> HostResult:
         except FileNotFoundError:
             pass
         except OSError as exc:
-            print(f"host: could not remove {raw}: {exc}")
+            print(f"host: could not remove {raw}: {exc}", file=sys.stderr)
             failed += 1
     return HostResult(failed_count=failed)

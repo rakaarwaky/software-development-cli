@@ -5,6 +5,7 @@ Routes host requests to the correct capability: setup or cleanup.
 
 from __future__ import annotations
 
+from shared.src.common.taxonomy_sdc_error import HostError
 from shared.src.host.contract_host_aggregate import IHostAggregate
 from shared.src.host.contract_host_protocol import (
     IHostCleanupProtocol,
@@ -35,8 +36,9 @@ class HostAgent(IHostAggregate):
         if request.action == "setup":
             return self._setup.setup(request.subdir)
         if request.action == "cleanup":
-            return self._cleanup.cleanup(request.paths or [])
-        raise ValueError(
+            paths = request.paths if request.paths is not None else []
+            return self._cleanup.cleanup(paths)
+        raise HostError(
             f"host: unknown action {request.action!r}; expected 'setup' or 'cleanup'"
         )
 

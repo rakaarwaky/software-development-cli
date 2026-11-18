@@ -12,6 +12,8 @@
 
 The **Host Helper** feature provides per-repository artifact management for the implement, design, and execute-plan skills. It creates isolated per-skill artifact directories under `~/.agents/develop/<repo-slug>/<subdir>/` and unlinks temporary files when those skills complete. The feature exposes two caller-observable behaviours: creating a fresh artifact root with a setup result, and cleaning up a list of file paths with a per-file failure count.
 
+Capabilities are injected into the agent via `HostAgent.create()` constructor injection: `HostAgent.create(setup_cap=..., cleanup_cap=...)` wires the setup and cleanup capabilities into the orchestrator at construction time.
+
 ## Functional Requirements
 
 ### FR-HOST-001: Setup artifact root
@@ -57,6 +59,13 @@ The feature shall create the per-repo, per-skill artifact root directory `~/.age
 | Setup latency (p95) | < 100ms |
 | Directory creation success rate | 100% |
 
+#### Performance Test
+The setup latency p95 is asserted at **< 100ms** using a `time.perf_counter()` loop over 1000 iterations. The test collects per-call durations in milliseconds, sorts them, and asserts the 95th-percentile value stays under the 100ms threshold.
+
+#### Error Message Format Tests
+- Unknown subdir: asserts `HostError` message contains `host: unknown subdir` and the repr of the invalid value (e.g. `'foo'`).
+- Not inside a git repository: asserts `HostError` message contains `not inside a git repository`.
+
 ### FR-HOST-002: Cleanup paths
 
 **Description:**
@@ -97,6 +106,11 @@ The feature shall unlink each file path passed by the caller independently. Miss
 |---------------|-------|
 | Cleanup exit code correctness | 100% |
 | Partial failure visibility (stderr coverage) | 100% of failures reported to stderr |
+
+#### Error Message Format Tests
+- Each failed unlink asserts `host: could not remove <path>: <os error>` appears on stderr.
+- Zero paths: asserts empty stderr (no false-positive error messages).
+- Multiple failures: asserts each failing path produces a separate stderr line.
 
 ## Public Interface
 

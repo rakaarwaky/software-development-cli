@@ -9,7 +9,7 @@ The `sdc` surface is implemented: stdlib-only argument parsing with host, memory
 | ID | Status | Description | Priority |
 |----|--------|-------------|----------|
 | BL-CLI-001 | Done | `sdc host setup --subdir implement/design/execute-plan` | P0 |
-| BL-CLI-002 | Done | `sdc host cleanup --path <workspace> [...]` | P0 |
+| BL-CLI-002 | Done | `sdc host cleanup <paths...>` (positional, missing paths skipped) | P0 |
 | BL-CLI-003 | Done | `sdc memory path|read|snapshot|update` (subdir omitted = host root) | P0 |
 | BL-CLI-004 | Done | `sdc validate-plan <plan-file>` | P1 |
 | BL-CLI-005 | Done | Exit codes 0/1/2/3/4 with stderr messages | P0 |

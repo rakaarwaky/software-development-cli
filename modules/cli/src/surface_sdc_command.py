@@ -97,6 +97,8 @@ def _dispatch_host(args: argparse.Namespace) -> int:
     if args.host_cmd == "cleanup":
         request = HostRequest(action="cleanup", paths=args.paths)
         result = _call_host(request)
+        if result.failed_count:
+            print(f"sdc: {result.failed_count} file(s) could not be removed", file=sys.stderr)
         return 1 if result.failed_count else 0
     return 2
 
@@ -109,6 +111,8 @@ def _dispatch_memory(args: argparse.Namespace) -> int:
     if args.memory_cmd == "read":
         result = _call_memory(MemoryRequest(action="read"))
         sys.stdout.write(result.content)
+        if result.content and not result.content.endswith("\n"):
+            sys.stdout.write("\n")
         return 0
     if args.memory_cmd == "snapshot":
         result = _call_memory(MemoryRequest(action="snapshot"))
@@ -193,6 +197,14 @@ def set_capabilities(
     _PLANNER_CAPABILITY = planner
 
 
+def reset_capabilities() -> None:
+    """Clear injected capability instances. Enables isolated test wiring."""
+    global _HOST_AGENT, _MEMORY_CAPABILITY, _PLANNER_CAPABILITY
+    _HOST_AGENT = None
+    _MEMORY_CAPABILITY = None
+    _PLANNER_CAPABILITY = None
+
+
 def _call_host(request: HostRequest) -> HostResult:
     """Route a host request through the agent orchestrator."""
     if _HOST_AGENT is None:
@@ -208,7 +220,9 @@ def _call_memory(request: MemoryRequest) -> MemoryResult:
 
 def _call_planner(request: PlanRequest) -> PlanResult:
     if _PLANNER_CAPABILITY is None:
-        raise PlanUsageError("planner capability not wired; call set_capabilities first")
+        exc = PlanUsageError("planner capability not wired; call set_capabilities first")
+        exc.exit_code = 1  # unwired capability is a runtime failure, not a usage error
+        raise exc
     return _PLANNER_CAPABILITY.execute(request)
 
 
@@ -239,13 +253,16 @@ def cmd_sdc(argv: list[str]) -> int:
         print(f"sdc: {exc}", file=sys.stderr)
         return exc.exit_code
     except PlanValidationError as exc:
-        print(json.dumps({"valid": False, "errors": [str(exc)]}, indent=2))
+        print(json.dumps({"valid": False, "errors": [str(exc)]}, indent=2), file=sys.stderr)
         return exc.exit_code
     except OSError as exc:
         print(f"sdc: I/O error: {exc}", file=sys.stderr)
-        return 1
+        return getattr(exc, "exit_code", 1)
     except KeyboardInterrupt:
         raise
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
+        import traceback
+
+        traceback.print_exc()
         print(f"sdc: unexpected error: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1

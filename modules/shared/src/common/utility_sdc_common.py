@@ -41,7 +41,10 @@ def bootstrap_ns_roots() -> None:
     sibling imports. Idempotent and safe to call repeatedly.
     """
     modules_root = Path(__file__).resolve().parents[2]
-    for _m in ("shared", "cli", "planner", "memory"):
+    tools_root = modules_root.parent
+    if str(tools_root) not in sys.path:
+        sys.path.append(str(tools_root))
+    for _m in ("shared", "cli", "planner", "memory", "host"):
         _src = modules_root / _m / "src"
         if _src.is_dir():
             _p = str(_src)

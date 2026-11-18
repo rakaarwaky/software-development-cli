@@ -142,7 +142,7 @@ set -euo pipefail
 TOOLS_DIR="$TOOLS_DIR"
 VENV_DIR="\$TOOLS_DIR/.venv"
 [[ -f "\$VENV_DIR/bin/activate" ]] && source "\$VENV_DIR/bin/activate"
-export PYTHONPATH="\$TOOLS_DIR/modules${SRC_DIRS}\${PYTHONPATH:+:\${PYTHONPATH}}"
+export PYTHONPATH="\$TOOLS_DIR:\$TOOLS_DIR/modules${SRC_DIRS}\${PYTHONPATH:+:\${PYTHONPATH}}"
 exec python3 "\$TOOLS_DIR/modules/root_sdc_entry.py" "\$@"
 CLI_EOF
 chmod 755 "$CLI_LAUNCHER"

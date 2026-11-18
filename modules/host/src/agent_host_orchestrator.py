@@ -6,9 +6,11 @@ calls the agent; the agent dispatches to the right capability.
 
 from __future__ import annotations
 
-from shared.src.common.taxonomy_sdc_constant import SKILL_SUBDIR_EXECUTE
-from shared.src.common.taxonomy_sdc_constant import SKILL_SUBDIR_IMPLEMENT
-from shared.src.common.taxonomy_sdc_constant import SKILL_SUBDIR_PLAN
+from shared.src.common.taxonomy_sdc_constant import (
+    SKILL_SUBDIR_EXECUTE,
+    SKILL_SUBDIR_IMPLEMENT,
+    SKILL_SUBDIR_PLAN,
+)
 from shared.src.host.contract_host_aggregate import IHostAggregate
 from shared.src.host.taxonomy_host_request import HostRequest, HostResult
 from shared.src.host.utility_host_helper import (
@@ -16,7 +18,6 @@ from shared.src.host.utility_host_helper import (
     make_setup_result,
     resolve_subdir,
 )
-
 
 # ─── Block 1: Module Declaration ───────────────────────────────────────
 

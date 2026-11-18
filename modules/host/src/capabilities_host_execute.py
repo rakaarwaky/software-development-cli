@@ -15,7 +15,6 @@ from shared.src.host.utility_host_helper import (
     resolve_subdir,
 )
 
-
 # ─── Block 1: Module Declaration ───────────────────────────────────────
 
 class HostExecute(IHostProtocol):

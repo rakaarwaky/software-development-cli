@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 
 from shared.src.common.taxonomy_sdc_constant import (
+    _SLUG_DASH_RE,
+    _SLUG_INVALID_RE,
     CASE_INSENSITIVE_HOSTS,
     DEVELOP_ROOT_DIRNAME,
     DEVELOP_ROOT_SUBDIR,
@@ -21,8 +23,6 @@ from shared.src.common.taxonomy_sdc_constant import (
     SSH_BARE_REMOTE_RE,
     SSH_REMOTE_RE,
     URL_REMOTE_RE,
-    _SLUG_DASH_RE,
-    _SLUG_INVALID_RE,
 )
 from shared.src.common.taxonomy_sdc_error import HostError
 
@@ -91,6 +91,7 @@ def repo_name_from_remote() -> str | None:
         result = subprocess.run(
             ["git", "remote", "get-url", "origin"],
             capture_output=True,
+            check=False,
             text=True,
             timeout=GIT_TIMEOUT_SECONDS,
         )
@@ -117,6 +118,7 @@ def repo_slug() -> str:
         toplevel_result = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
             capture_output=True,
+            check=False,
             text=True,
             timeout=GIT_TIMEOUT_SECONDS,
         )

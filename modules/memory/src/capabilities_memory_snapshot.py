@@ -6,8 +6,6 @@ JSON snapshot {common_issues, recent_runs, exists}.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from shared.src.memory.contract_memory_protocol import IMemorySnapshotProtocol
 from shared.src.memory.utility_memory_helper import (
     build_snapshot_payload,
@@ -41,7 +39,7 @@ class CapabilitiesSnapshot(IMemorySnapshotProtocol):
     # ─── Block 3: Module Helpers ───────────────────────────────────────
 
     @classmethod
-    def create_default(cls) -> "CapabilitiesSnapshot":
+    def create_default(cls) -> CapabilitiesSnapshot:
         return cls()
 
     def __repr__(self) -> str:

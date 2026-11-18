@@ -241,14 +241,11 @@ def cmd_sdc(argv: list[str]) -> int:
     except PlanValidationError as exc:
         print(json.dumps({"valid": False, "errors": [str(exc)]}, indent=2))
         return exc.exit_code
-    except SdcError as exc:
-        print(f"sdc: {exc}", file=sys.stderr)
-        return exc.exit_code
     except OSError as exc:
         print(f"sdc: I/O error: {exc}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:
         raise
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         print(f"sdc: unexpected error: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1

@@ -29,17 +29,17 @@ bootstrap_ns_roots()
 
 def _wire_capabilities() -> None:
     """Instantiate the capabilities and inject them into the surface."""
+    from cli.src.surface_sdc_command import set_capabilities
     from host.src.agent_host_orchestrator import HostAgent
+    from memory.src.agent_memory_orchestrator import AgentMemory
     from memory.src.capabilities_memory_path import CapabilitiesPath
     from memory.src.capabilities_memory_reader import CapabilitiesReader
     from memory.src.capabilities_memory_snapshot import CapabilitiesSnapshot
     from memory.src.capabilities_memory_writer import CapabilitiesWriter
-    from memory.src.agent_memory_orchestrator import AgentMemory
     from planner.src.agent_planner_orchestrator import AgentPlanner
+    from planner.src.capabilities_compute_execution import CapabilitiesComputeExecution
     from planner.src.capabilities_parse_pr_plan import CapabilitiesParsePrPlan
     from planner.src.capabilities_validate_dag import CapabilitiesValidateDag
-    from planner.src.capabilities_compute_execution import CapabilitiesComputeExecution
-    from cli.src.surface_sdc_command import set_capabilities
 
     parser = CapabilitiesParsePrPlan()
     validator = CapabilitiesValidateDag()

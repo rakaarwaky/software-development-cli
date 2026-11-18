@@ -32,6 +32,7 @@ from shared.src.common.taxonomy_sdc_constant import (
     SEVERITY_ORDER,
 )
 from shared.src.common.taxonomy_sdc_error import (
+    HostError,
     LockTimeoutError,
     MemoryHelperError,
     SpecError,
@@ -87,7 +88,7 @@ def memory_paths(*, create_dir: bool = False) -> dict[str, Path]:
         )
     try:
         slug = repo_slug()
-    except Exception as exc:
+    except HostError as exc:
         raise WorkspaceIdError(f"could not determine repo slug: {exc}")
     base = home / ".agents" / "develop" / slug / MEMORY_SUBDIR
     if create_dir:

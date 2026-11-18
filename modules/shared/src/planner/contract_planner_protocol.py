@@ -46,9 +46,9 @@ class IPlanComputeProtocol(ABC):
 
 
 __all__ = [
+    "IPlanComputeProtocol",
     "IPlanParseProtocol",
     "IPlanValidateProtocol",
-    "IPlanComputeProtocol",
 ]
 
 _layer_symbols = {

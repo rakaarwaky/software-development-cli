@@ -62,7 +62,7 @@ class AgentMemory(IMemoryAggregate):
         reader_cap: IMemoryReaderProtocol,
         snapshot_cap: IMemorySnapshotProtocol,
         writer_cap: IMemoryWriterProtocol,
-    ) -> "AgentMemory":
+    ) -> AgentMemory:
         return cls(
             path_cap=path_cap,
             reader_cap=reader_cap,

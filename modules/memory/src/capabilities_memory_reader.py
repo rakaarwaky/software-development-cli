@@ -6,8 +6,6 @@ memory file under ~/.agents/develop/<repo>/memory/.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from shared.src.memory.contract_memory_protocol import IMemoryReaderProtocol
 from shared.src.memory.utility_memory_helper import memory_paths
 
@@ -29,7 +27,7 @@ class CapabilitiesReader(IMemoryReaderProtocol):
     # ─── Block 3: Module Helpers ───────────────────────────────────────
 
     @classmethod
-    def create_default(cls) -> "CapabilitiesReader":
+    def create_default(cls) -> CapabilitiesReader:
         return cls()
 
     def __repr__(self) -> str:

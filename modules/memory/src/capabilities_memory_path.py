@@ -28,7 +28,7 @@ class CapabilitiesPath(IMemoryPathProtocol):
     # ─── Block 3: Module Helpers ───────────────────────────────────────
 
     @classmethod
-    def create_default(cls) -> "CapabilitiesPath":
+    def create_default(cls) -> CapabilitiesPath:
         return cls()
 
     def __repr__(self) -> str:

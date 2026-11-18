@@ -6,15 +6,13 @@ under exclusive flock, rendering the new markdown atomically.
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from shared.src.memory.contract_memory_protocol import IMemoryWriterProtocol
 from shared.src.memory.taxonomy_memory_request import MemoryResult
 from shared.src.memory.utility_memory_helper import (
     acquire_lock,
     atomic_write,
-    merge_run,
     memory_paths,
+    merge_run,
     parse_memory_file,
     release_lock,
     render_memory_file,
@@ -66,7 +64,7 @@ class CapabilitiesWriter(IMemoryWriterProtocol):
     # ─── Block 3: Module Helpers ───────────────────────────────────────
 
     @classmethod
-    def create_default(cls) -> "CapabilitiesWriter":
+    def create_default(cls) -> CapabilitiesWriter:
         return cls()
 
     def __repr__(self) -> str:

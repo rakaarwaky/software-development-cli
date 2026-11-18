@@ -1,7 +1,7 @@
 """Host helper shared utility (AES utility layer).
 
 Stateless helpers shared across the three per-skill host capabilities
-(implement, design, execute). Lives in the shared kernel so the
+(implement, planner, execute). Lives in the shared kernel so the
 per-skill capability files in ``modules/host/src/`` stay thin and free
 of duplication (AES305).
 

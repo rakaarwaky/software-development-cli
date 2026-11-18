@@ -2,7 +2,7 @@
 
 ## Progress Overview
 
-The host helper feature is complete: per-repo artifact roots under `~/.agents/develop/<reponame>/<subdir>/` are set up and cleaned for the implement, design, and execute-plan skills.
+The host helper feature is complete: per-repo artifact roots under `~/.agents/develop/<reponame>/<subdir>/` are set up and cleaned for the implement, planner, and execute-plan skills.
 
 ## Backlog Status
 

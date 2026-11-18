@@ -3,7 +3,7 @@
 ## Project Overview
 
 `sdc` is a single stdlib-only Python CLI that consolidates the helper scripts
-used by the `software-development` skills (`implement`, `design`, `execute-plan`)
+used by the `software-development` skills (`implement`, `planner`, `execute-plan`)
 into one binary. It replaces the per-skill `scripts/host.py`,
 `scripts/memory.py`, and `scripts/validate-plan.py` calls with a uniform
 `sdc <subcommand>` surface, so skill step files stay thin and consistent.
@@ -25,7 +25,7 @@ into one binary. It replaces the per-skill `scripts/host.py`,
 | 4 | Memory path | `sdc memory path` |
 | 5 | Memory snapshot | `sdc memory snapshot` |
 | 6 | Memory update | `echo '{"patterns":[...]}' \| sdc memory update` |
-| 7 | Validate plan | `sdc validate-plan <design-doc-path>` |
+| 7 | Validate plan | `sdc validate-plan <plan-doc-path>` |
 
 ### `sdc host <setup|cleanup>`
 
@@ -39,9 +39,9 @@ into one binary. It replaces the per-skill `scripts/host.py`,
 - `snapshot`: Print the parsed memory file as JSON.
 - `update [--file <path>]`: Merge a JSON spec from stdin (or `--file`) into the memory file under an exclusive lock.
 
-### `sdc validate-plan <design-doc-path>`
+### `sdc validate-plan <plan-doc-path>`
 
-Validates the `## PR Plan` section of a design document: parses PR entries, validates the dependency DAG (unique IDs, valid references, no cycles), computes level assignments, and reports max parallelism as JSON.
+Validates the `## PR Plan` section of a plan document: parses PR entries, validates the dependency DAG (unique IDs, valid references, no cycles), computes level assignments, and reports max parallelism as JSON.
 
 ## Reference
 

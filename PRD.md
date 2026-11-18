@@ -5,7 +5,7 @@
     [Skills] --> [sdc CLI] --> [Host / Memory / Planner capabilities]
 
 **software-development-cli (`sdc`)** is a project that consolidates the helper
-scripts used by the `software-development` skills (`implement`, `design`,
+scripts used by the `software-development` skills (`implement`, `planner`,
 `execute-plan`) into one stdlib-only Python CLI. It serves skill authors and
 maintainers who need one uniform command surface instead of per-skill
 `python3 .../scripts/*.py` calls. The project matters because every new skill
@@ -127,14 +127,14 @@ already exist.
 
 #### Proposed Solution
 
-`sdc validate-plan <design-doc-path>` parses the `## PR Plan` section of a
-design document, validates the dependency DAG (unique IDs, valid references,
+`sdc validate-plan <plan-doc-path>` parses the `## PR Plan` section of a
+plan document, validates the dependency DAG (unique IDs, valid references,
 no cycles), computes level assignments, and reports max parallelism as JSON.
 
 #### Main User Flow
 
-1. Author saves a design document with a `## PR Plan` section.
-2. Author runs `sdc validate-plan <design-doc-path>`.
+1. Author saves a plan document with a `## PR Plan` section.
+2. Author runs `sdc validate-plan <plan-doc-path>`.
 3. `sdc` prints a JSON report with `valid`, `pr_count`, `levels`, `max_parallelism`, and any errors.
 
 ## Reference

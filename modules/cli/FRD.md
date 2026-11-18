@@ -125,10 +125,10 @@ contract aggregates, and renders JSON output to stdout.
 
 ### FR-CLI-004: Validate-Plan Subcommand
 
-**Description:** Validate the PR Plan DAG in a design document and emit a JSON validation report.
+**Description:** Validate the PR Plan DAG in a plan document and emit a JSON validation report.
 
 #### Business Logic
-- Parse `## PR Plan` section entries from the design document.
+- Parse `## PR Plan` section entries from the plan document.
 - Validate dependency references and detect cycles in the DAG.
 - Compute level assignments, max parallelism, and linearized merge order.
 - Return `valid=true` with report on success; `valid=false` with errors on failure.
@@ -136,12 +136,12 @@ contract aggregates, and renders JSON output to stdout.
 #### Edge Cases
 - Missing `## PR Plan` section raises `PlanParseError` with exit code 4.
 - Invalid DAG (cycle or missing dependency) raises `PlanValidationError` with exit code 1.
-- Unreadable or missing design document raises `PlanUsageError` with exit code 2.
+- Unreadable or missing plan document raises `PlanUsageError` with exit code 2.
 
 #### Technical Specification
 | Aspect | Detail |
 |--------|--------|
-| **Input** | `sdc validate-plan <design-doc-path>` |
+| **Input** | `sdc validate-plan <plan-doc-path>` |
 | **Output** | JSON report with `valid`, `pr_count`, `levels`, `max_parallelism`, `linearized_order`, `level_assignments`, `errors` |
 | **Protocol** | `IPlanAggregate` |
 | **Method** | `PlanValidator.execute(PlanRequest) → PlanResult` |
@@ -151,9 +151,9 @@ contract aggregates, and renders JSON output to stdout.
 #### Test
 | Context | When Action | Then Observable Result |
 |---------|-------------|------------------------|
-| Valid DAG design doc | `sdc validate-plan design.md` | JSON report with `valid: true`, exit 0 |
-| Cyclic DAG design doc | `sdc validate-plan design.md` | JSON report with `valid: false`, exit 1 |
-| Missing PR Plan section | `sdc validate-plan design.md` | Error to stderr, exit code 4 |
+| Valid DAG plan doc | `sdc validate-plan plan.md` | JSON report with `valid: true`, exit 0 |
+| Cyclic DAG plan doc | `sdc validate-plan plan.md` | JSON report with `valid: false`, exit 1 |
+| Missing PR Plan section | `sdc validate-plan plan.md` | Error to stderr, exit code 4 |
 
 #### Metric
 | Target Metric | Value |

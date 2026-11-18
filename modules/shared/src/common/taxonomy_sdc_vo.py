@@ -21,7 +21,7 @@ ArtifactRoot = NewType("ArtifactRoot", str)
 """Absolute path to ``~/.agents/develop/<reponame>/<subdir>/``."""
 
 RunId = NewType("RunId", str)
-"""Short (8-hex) unique identifier for one /implement or /design run."""
+"""Short (8-hex) unique identifier for one /implement or /planner run."""
 
 
 @dataclass(frozen=True)
@@ -76,7 +76,7 @@ class Pattern:
 
 @dataclass(frozen=True)
 class RecentRun:
-    """One logged /implement or /design run summary entry."""
+    """One logged /implement or /planner run summary entry."""
 
     date: str
     description: str

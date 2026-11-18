@@ -10,7 +10,7 @@
 [HostCleanup] --> [IHostCleanupProtocol] (contract)
 ```
 
-The **Host Helper** feature provides per-repository artifact management for the implement, design, and execute-plan skills. It creates isolated per-skill artifact directories under `~/.agents/develop/<repo-slug>/<subdir>/` and unlinks temporary files when those skills complete. The feature exposes two caller-observable behaviours: creating a fresh artifact root with a setup result, and cleaning up a list of file paths with a per-file failure count.
+The **Host Helper** feature provides per-repository artifact management for the implement, planner, and execute-plan skills. It creates isolated per-skill artifact directories under `~/.agents/develop/<repo-slug>/<subdir>/` and unlinks temporary files when those skills complete. The feature exposes two caller-observable behaviours: creating a fresh artifact root with a setup result, and cleaning up a list of file paths with a per-file failure count.
 
 Capabilities are injected into the agent via `HostAgent.create()` constructor injection: `HostAgent.create(setup_cap=..., cleanup_cap=...)` wires the setup and cleanup capabilities into the orchestrator at construction time.
 

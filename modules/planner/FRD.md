@@ -9,14 +9,14 @@
 [Capabilities*] --> [IPlan*Protocol] (contract)
 ```
 
-The **Plan Validator** feature parses the `## PR Plan` section of a design document, validates the PR dependency DAG, computes level assignments and final merge order, and returns a JSON report. The feature exposes one caller-observable action: `validate`, which reads a design document path, runs parse → validate → compute in sequence, and reports success or failure with structured errors.
+The **Plan Validator** feature parses the `## PR Plan` section of a plan document, validates the PR dependency DAG, computes level assignments and final merge order, and returns a JSON report. The feature exposes one caller-observable action: `validate`, which reads a plan document path, runs parse → validate → compute in sequence, and reports success or failure with structured errors.
 
 ## Functional Requirements
 
 ### FR-PLAN-001: Parse PR Plan
 
 **Description:**
-The feature shall extract all PR entries from the `## PR Plan` section of a design document. Each entry carries an ID, title, affected files/components, dependencies, and description. The feature rejects documents that lack a `## PR Plan` section or that contain no PR entries.
+The feature shall extract all PR entries from the `## PR Plan` section of a plan document. Each entry carries an ID, title, affected files/components, dependencies, and description. The feature rejects documents that lack a `## PR Plan` section or that contain no PR entries.
 
 #### Business Logic
 - The feature shall locate the `## PR Plan` section heading and read until the next `## ` heading or end of document.
@@ -30,13 +30,13 @@ The feature shall extract all PR entries from the `## PR Plan` section of a desi
 - If no `## PR Plan` section exists, the feature shall return a parse error with exit code `4` (`PlanParseError`).
 - If the section exists but contains no PR entries, the feature shall return a parse error.
 - If a dependency string uses an unrecognized format (expected `PR <id>`), the feature shall record that as a parse error but continue parsing other entries.
-- If the design document file does not exist, the feature shall return `PlanUsageError` with exit code `2`.
-- If the design document file cannot be read due to permission errors, the feature shall return `PlanUsageError` with exit code `2`.
+- If the plan document file does not exist, the feature shall return `PlanUsageError` with exit code `2`.
+- If the plan document file cannot be read due to permission errors, the feature shall return `PlanUsageError` with exit code `2`.
 
 #### Technical Specification
 | Aspect | Detail |
 |--------|--------|
-| **Input** | Design document path; source: CLI argument `<design-doc-path>` |
+| **Input** | plan document path; source: CLI argument `<plan-doc-path>` |
 | **Output** | Parsed PR entry list (internal VO) or parse error list |
 | **Protocol** | `IPlanParseProtocol` |
 | **Method** | `parse_plan(plan_text)` |
@@ -46,9 +46,9 @@ The feature shall extract all PR entries from the `## PR Plan` section of a desi
 #### Test
 | Context | When Action | Then Observable Result |
 |---------|-------------|------------------------|
-| Design document has `## PR Plan` with 3 valid PR entries | Call parse | 3 entries are returned with IDs, titles, files, dependencies, and descriptions |
-| Design document has no `## PR Plan` section | Call parse | Parse error: "No '## PR Plan' section found in the document"; exit code `4` |
-| Design document has `## PR Plan` but no PR entries | Call parse | Parse error: "No PR entries found in the PR Plan section"; exit code `4` |
+| plan document has `## PR Plan` with 3 valid PR entries | Call parse | 3 entries are returned with IDs, titles, files, dependencies, and descriptions |
+| plan document has no `## PR Plan` section | Call parse | Parse error: "No '## PR Plan' section found in the document"; exit code `4` |
+| plan document has `## PR Plan` but no PR entries | Call parse | Parse error: "No PR entries found in the PR Plan section"; exit code `4` |
 | Dependency string uses unrecognized format | Call parse | Parse error recorded for that entry; other entries still parsed |
 
 #### Metric

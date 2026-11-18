@@ -13,8 +13,6 @@ The host helper feature is complete: per-repo artifact roots under `~/.agents/de
 | BL-HOST-003 | Done | Repo slug resolution (remote → toplevel) | P0 |
 | BL-HOST-004 | Done | Python interpreter resolution (Linux only) | P0 |
 | BL-HOST-005 | Todo | Windows support | P3 |
-| FR-HOST-001 | Done | Setup artifact root | P0 |
-| FR-HOST-002 | Done | Cleanup paths | P0 |
 
 ## Reference
 

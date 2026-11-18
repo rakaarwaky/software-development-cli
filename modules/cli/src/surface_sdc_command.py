@@ -110,7 +110,7 @@ def _dispatch_memory(args: argparse.Namespace) -> int:
         return 0
     if args.memory_cmd == "read":
         result = _call_memory(MemoryRequest(action="read"))
-        sys.stdout.write(result.content)
+        sys.stdout.write(str(result.content))
         if result.content and not result.content.endswith("\n"):
             sys.stdout.write("\n")
         return 0
@@ -121,7 +121,11 @@ def _dispatch_memory(args: argparse.Namespace) -> int:
         return 0
     if args.memory_cmd == "update":
         spec = _read_update_spec(args)
-        result = _call_memory(MemoryRequest(action="update", spec=spec))
+        from shared.src.memory.taxonomy_memory_request import UpdateSpec
+
+        result = _call_memory(
+            MemoryRequest(action="update", spec=UpdateSpec(data=spec))
+        )
         json.dump(
             {
                 "file": result.file,
@@ -263,9 +267,3 @@ def cmd_sdc(argv: list[str]) -> int:
         return getattr(exc, "exit_code", 1)
     except KeyboardInterrupt:
         raise
-    except Exception as exc:  # noqa: BLE001 — intentional final safety net for unforeseen errors
-        import traceback
-
-        traceback.print_exc()
-        print(f"sdc: unexpected error: {type(exc).__name__}: {exc}", file=sys.stderr)
-        return 1

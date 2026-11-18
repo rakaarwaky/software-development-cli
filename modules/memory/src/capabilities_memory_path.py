@@ -6,9 +6,7 @@ active repository under ~/.agents/develop/<repo>/memory/.
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from shared.src.common.taxonomy_sdc_vo import WorkspaceId
+from shared.src.common.taxonomy_sdc_vo import RepoPaths, WorkspaceId
 from shared.src.memory.contract_memory_protocol import IMemoryPathProtocol
 from shared.src.memory.utility_memory_helper import get_workspace_id, memory_paths
 
@@ -23,10 +21,15 @@ class CapabilitiesPath(IMemoryPathProtocol):
 
     # ─── Block 2: Module Contract ──────────────────────────────────────
 
-    def resolve_paths(self, *, create_dir: bool = False) -> dict[str, Path]:
+    def resolve_paths(self, *, create_dir: bool = False) -> RepoPaths:
         paths = memory_paths(create_dir=create_dir)
-        paths["workspace_id"] = Path(WorkspaceId(get_workspace_id()))
-        return paths
+        workspace_id = WorkspaceId(get_workspace_id())
+        return RepoPaths(
+            dir=paths["dir"],
+            file=paths["file"],
+            lock=paths["lock"],
+            workspace_id=workspace_id,
+        )
 
     # ─── Block 3: Module Helpers ───────────────────────────────────────
 

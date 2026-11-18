@@ -27,6 +27,12 @@ from shared.src.common.taxonomy_sdc_constant import (
 from shared.src.common.taxonomy_sdc_error import HostError
 
 
+def _git_executable() -> str:
+    """Return the absolute path to the git executable, or ``git`` as fallback."""
+    found = shutil.which("git")
+    return found if found is not None else "git"
+
+
 def bootstrap_ns_roots() -> None:
     """Ensure every module's ``src/`` is on ``sys.path`` so bare intra-module
     imports (``from shared.src...``, ``from cli.src...``) resolve.
@@ -89,7 +95,7 @@ def repo_name_from_remote() -> str | None:
     """
     try:
         result = subprocess.run(
-            ["git", "remote", "get-url", "origin"],
+            [_git_executable(), "remote", "get-url", "origin"],
             capture_output=True,
             check=False,
             text=True,
@@ -116,7 +122,7 @@ def repo_slug() -> str:
     """
     try:
         toplevel_result = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
+            [_git_executable(), "rev-parse", "--show-toplevel"],
             capture_output=True,
             check=False,
             text=True,
@@ -216,7 +222,7 @@ def git_output(*args: str) -> str | None:
     """Run a git command and return stripped stdout, or None on failure."""
     try:
         result = subprocess.run(
-            ["git", *args],
+            [_git_executable(), *args],
             capture_output=True,
             text=True,
             check=False,

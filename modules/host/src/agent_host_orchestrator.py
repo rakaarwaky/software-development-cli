@@ -11,9 +11,12 @@ from shared.src.host.contract_host_protocol import (
     IHostCleanupProtocol,
     IHostSetupProtocol,
 )
-from shared.src.host.taxonomy_host_request import HostRequest, HostResult
+from shared.src.host.taxonomy_host_request import HostAction, HostRequest, HostResult
 
 # ─── Block 1: Module Declaration ───────────────────────────────────────
+
+_SETUP_ACTION = HostAction("setup")
+_CLEANUP_ACTION = HostAction("cleanup")
 
 
 class HostAgent(IHostAggregate):
@@ -33,9 +36,9 @@ class HostAgent(IHostAggregate):
     # ─── Block 2: Module Contract ──────────────────────────────────────
 
     def dispatch(self, request: HostRequest) -> HostResult:
-        if request.action == "setup":
+        if request.action == _SETUP_ACTION:
             return self._setup.setup(request.subdir)
-        if request.action == "cleanup":
+        if request.action == _CLEANUP_ACTION:
             paths = request.paths if request.paths is not None else []
             return self._cleanup.cleanup(paths)
         raise HostError(

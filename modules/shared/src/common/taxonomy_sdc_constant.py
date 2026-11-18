@@ -21,6 +21,12 @@ SKILL_SUBDIR_IMPLEMENT: Final = "implement"
 SKILL_SUBDIR_PLAN: Final = "plan"
 SKILL_SUBDIR_EXECUTE: Final = "execute"
 
+#: The set of valid per-skill artifact subdirs (setup accepts only these).
+VALID_SKILL_SUBDIRS: Final = (SKILL_SUBDIR_IMPLEMENT, SKILL_SUBDIR_PLAN, SKILL_SUBDIR_EXECUTE)
+
+#: Artifact root prefix relative to the user's home (``<DEVELOP_ROOT_DIRNAME>/<DEVELOP_ROOT_SUBDIR>``).
+ARTIFACT_ROOT_PREFIX: Final = f"{DEVELOP_ROOT_DIRNAME}/{DEVELOP_ROOT_SUBDIR}"
+
 # ─── Memory file ───────────────────────────────────────────────────────
 
 #: Per-repo subdir under ``~/.agents/develop/<reponame>/`` that holds the

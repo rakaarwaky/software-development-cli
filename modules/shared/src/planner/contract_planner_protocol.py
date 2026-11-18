@@ -19,7 +19,7 @@ from shared.src.planner.taxonomy_planner_request import (
 
 
 class IPlanParseProtocol(ABC):
-    """Parse the ``## PR Plan`` section of a design document."""
+    """Parse the ``## PR Plan`` section of a plan document."""
 
     @abstractmethod
     def parse_plan(self, plan_text: PrEntryList) -> ParseResult:

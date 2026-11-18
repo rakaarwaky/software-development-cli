@@ -17,10 +17,10 @@ from shared.src.common.taxonomy_sdc_error import PlanParseError
 from shared.src.planner.taxonomy_planner_request import PlanRequest
 
 
-def _design_doc(tmp_path: Path) -> Path:
-    doc = tmp_path / "design.md"
+def _plan_doc(tmp_path: Path) -> Path:
+    doc = tmp_path / "plan.md"
     doc.write_text(
-        "# Design Doc\n\n"
+        "# Plan Doc\n\n"
         "## PR Plan\n\n"
         "### PR 0a: Alpha\n"
         "- Files/components affected: src/a.py\n"
@@ -44,10 +44,10 @@ def _make_orchestrator() -> AgentPlanner:
 
 
 class TestPlannerE2E:
-    """Full lifecycle: read design doc → parse → validate → compute."""
+    """Full lifecycle: read plan document → parse → validate → compute."""
 
     def test_validate_returns_full_plan_result(self, tmp_path: Path) -> None:
-        doc = _design_doc(tmp_path)
+        doc = _plan_doc(tmp_path)
         result = _make_orchestrator().execute(
             PlanRequest(action="validate", path=str(doc)),
         )

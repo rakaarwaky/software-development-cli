@@ -1,7 +1,7 @@
 """PR Plan parser capability (AES capabilities layer, capability 1/3).
 
 Implements IPlanParseProtocol: extracts PR entries from the ## PR Plan
-section of a design document.
+section of a plan document.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from shared.src.planner.taxonomy_planner_request import ParseResult, PrEntryList
 # ─── Block 1: Module Declaration ──────────────────────────────────────
 
 class CapabilitiesParsePrPlan(IPlanParseProtocol):
-    """Capability: parse the ``## PR Plan`` section of a design document."""
+    """Capability: parse the ``## PR Plan`` section of a plan document."""
 
     def __init__(self) -> None:
         pass

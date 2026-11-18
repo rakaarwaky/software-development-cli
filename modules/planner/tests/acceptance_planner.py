@@ -14,10 +14,10 @@ from planner.src.capabilities_validate_dag import CapabilitiesValidateDag
 from shared.src.planner.taxonomy_planner_request import PlanRequest
 
 
-def _valid_design_doc(tmp_path: Path) -> Path:
-    doc = tmp_path / "design.md"
+def _valid_plan_doc(tmp_path: Path) -> Path:
+    doc = tmp_path / "plan.md"
     doc.write_text(
-        "# Design\n\n"
+        "# Plan\n\n"
         "## PR Plan\n\n"
         "### PR 0a: Alpha\n"
         "- Files/components affected: src/a.py\n"
@@ -48,7 +48,7 @@ class TestFRPLAN001Acceptance:
     """FR-PLAN-001: Parse PR Plan — business requirement met."""
 
     def test_parse_returns_all_three_entries(self, tmp_path: Path) -> None:
-        doc = _valid_design_doc(tmp_path)
+        doc = _valid_plan_doc(tmp_path)
         result = _make_orchestrator().execute(
             PlanRequest(action="validate", path=str(doc)),
         )
@@ -60,7 +60,7 @@ class TestFRPLAN002Acceptance:
     """FR-PLAN-002: Validate DAG — business requirement met."""
 
     def test_valid_dag_produces_valid_result(self, tmp_path: Path) -> None:
-        doc = _valid_design_doc(tmp_path)
+        doc = _valid_plan_doc(tmp_path)
         result = _make_orchestrator().execute(
             PlanRequest(action="validate", path=str(doc)),
         )
@@ -71,7 +71,7 @@ class TestFRPLAN003Acceptance:
     """FR-PLAN-003: Compute Execution Plan — business requirement met."""
 
     def test_linear_chain_has_expected_levels(self, tmp_path: Path) -> None:
-        doc = _valid_design_doc(tmp_path)
+        doc = _valid_plan_doc(tmp_path)
         result = _make_orchestrator().execute(
             PlanRequest(action="validate", path=str(doc)),
         )

@@ -54,7 +54,7 @@ def _build_parser() -> argparse.ArgumentParser:
     host_setup.add_argument(
         "--subdir",
         required=True,
-        choices=["implement", "plan", "execute", "design", "execute-plan", "grill"],
+        choices=["implement", "plan", "planner", "execute", "execute-plan", "grill"],
         help="Per-skill artifact subdir under ~/.agents/develop/<reponame>/ (skill-name aliases accepted).",
     )
     host_cleanup = host_sub.add_parser("cleanup", help="Unlink files; missing paths are ok.")
@@ -75,12 +75,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Read the JSON spec from this path instead of stdin.",
     )
 
-    # sdc validate-plan <design-doc-path>
+    # sdc validate-plan <plan-doc-path>
     vp = sub.add_parser(
         "validate-plan",
-        help="Validate the PR Plan DAG in a design document.",
+        help="Validate the PR Plan DAG in a plan document.",
     )
-    vp.add_argument("path", help="Path to the design document.")
+    vp.add_argument("path", help="Path to the plan document.")
 
     return parser
 
@@ -89,7 +89,6 @@ def _build_parser() -> argparse.ArgumentParser:
 
 _SUBDIR_ALIASES: dict[str, str] = {
     "planner": "plan",
-    "design": "plan",  # legacy alias (skill renamed design -> planner)
     "execute-plan": "execute",
     "grill": "plan",
 }
@@ -98,7 +97,7 @@ _SUBDIR_ALIASES: dict[str, str] = {
 def _normalize_subdir(subdir: str) -> str:
     """Map a skill-name alias to its canonical per-skill artifact subdir.
 
-    ``design`` → ``plan``, ``execute-plan`` → ``execute``;
+    ``plan`` → ``plan``, ``execute-plan`` → ``execute``;
     any other value (already canonical) is returned unchanged.
     """
     return _SUBDIR_ALIASES.get(subdir, subdir)

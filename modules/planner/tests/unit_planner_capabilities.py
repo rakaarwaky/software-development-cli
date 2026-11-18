@@ -63,7 +63,7 @@ def orchestrator(parser, validator, computer):
 
 # ─── FR-PLAN-001: Parse PR Plan ────────────────────────────────────────
 
-DOC_THREE_VALID = """# Design Doc
+DOC_THREE_VALID = """# Plan Doc
 
 ## PR Plan
 
@@ -107,7 +107,7 @@ class TestParseMissingSection:
     """No ## PR Plan section → parse error with exit code 4."""
 
     def test_raises_plan_parse_error_exit_4(self, orchestrator, tmp_path):
-        doc = tmp_path / "design.md"
+        doc = tmp_path / "plan.md"
         doc.write_text("# Doc\n\nNo plan section here.", encoding="utf-8")
 
         with pytest.raises(PlanParseError) as exc_info:
@@ -121,7 +121,7 @@ class TestParseNoEntries:
     """## PR Plan exists but no entries → parse error with exit code 4."""
 
     def test_raises_plan_parse_error_exit_4(self, orchestrator, tmp_path):
-        doc = tmp_path / "design.md"
+        doc = tmp_path / "plan.md"
         doc.write_text("# Doc\n\n## PR Plan\n\n", encoding="utf-8")
 
         with pytest.raises(PlanParseError) as exc_info:
@@ -312,7 +312,7 @@ class TestSurfaceParseErrorExit4:
         self._wire(monkeypatch)
         from cli.src.surface_sdc_command import cmd_sdc
 
-        doc = tmp_path / "design.md"
+        doc = tmp_path / "plan.md"
         doc.write_text("# Doc\n\nNo plan section here.", encoding="utf-8")
 
         out, err = self._run(cmd_sdc, ["validate-plan", str(doc)])
@@ -325,7 +325,7 @@ class TestSurfaceParseErrorExit4:
         self._wire(monkeypatch)
         from cli.src.surface_sdc_command import cmd_sdc
 
-        doc = tmp_path / "design.md"
+        doc = tmp_path / "plan.md"
         doc.write_text("# Doc\n\n## PR Plan\n\n", encoding="utf-8")
 
         out, err = self._run(cmd_sdc, ["validate-plan", str(doc)])

@@ -211,7 +211,7 @@ def test_validate_plan_valid_exits_zero():
     old_out, old_err = sys.stdout, sys.stderr
     sys.stdout, sys.stderr = out, err
     try:
-        code = cmd_sdc(["validate-plan", "design.md"])
+        code = cmd_sdc(["validate-plan", "plan.md"])
     finally:
         sys.stdout, sys.stderr = old_out, old_err
     assert code == 0
@@ -227,7 +227,7 @@ def test_validate_plan_invalid_writes_stderr_exits_one():
     old_out, old_err = sys.stdout, sys.stderr
     sys.stdout, sys.stderr = out, err
     try:
-        code = cmd_sdc(["validate-plan", "design.md"])
+        code = cmd_sdc(["validate-plan", "plan.md"])
     finally:
         sys.stdout, sys.stderr = old_out, old_err
     assert code == 1
@@ -250,7 +250,7 @@ def test_validate_plan_raises_plan_validation_error():
     old_out, old_err = sys.stdout, sys.stderr
     sys.stdout, sys.stderr = out, err
     try:
-        code = cmd_sdc(["validate-plan", "design.md"])
+        code = cmd_sdc(["validate-plan", "plan.md"])
     finally:
         sys.stdout, sys.stderr = old_out, old_err
     assert code == 1
@@ -270,7 +270,7 @@ def test_unwired_planner_exits_one_not_two():
     old_out, old_err = sys.stdout, sys.stderr
     sys.stdout, sys.stderr = out, err
     try:
-        code = cmd_sdc(["validate-plan", "design.md"])
+        code = cmd_sdc(["validate-plan", "plan.md"])
     finally:
         sys.stdout, sys.stderr = old_out, old_err
     assert code == 1, f"expected exit 1, got {code}"
@@ -363,7 +363,7 @@ def test_invalid_dag_report_goes_to_stdout_full_schema():
     old_out, old_err = sys.stdout, sys.stderr
     sys.stdout, sys.stderr = out, err
     try:
-        code = cmd_sdc(["validate-plan", "design.md"])
+        code = cmd_sdc(["validate-plan", "plan.md"])
     finally:
         sys.stdout, sys.stderr = old_out, old_err
     assert code == 1
@@ -400,7 +400,7 @@ def test_bad_json_via_file_names_the_file_in_error():
 
 
 def test_host_setup_accepts_skill_name_aliases():
-    """--subdir design → plan, --subdir execute-plan → execute."""
+    """--subdir planner → plan, --subdir execute-plan → execute."""
     cap = MagicMock()
     cap.dispatch.return_value = HostResult(
         python="/usr/bin/python3",
@@ -408,7 +408,7 @@ def test_host_setup_accepts_skill_name_aliases():
         run_id="abc12345",
     )
     _wire(cap_host=cap)
-    for alias, canonical in [("design", "plan"), ("execute-plan", "execute")]:
+    for alias, canonical in [("planner", "plan"), ("execute-plan", "execute")]:
         out = StringIO()
         err = StringIO()
         old_out, old_err = sys.stdout, sys.stderr

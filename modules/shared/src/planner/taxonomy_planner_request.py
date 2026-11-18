@@ -12,7 +12,7 @@ class PlanRequest:
     """Request dispatched to the planner capability.
 
     ``action`` is one of ``validate``. For ``validate``, ``path`` holds
-    the design document path.
+    the plan document path.
     """
 
     action: str

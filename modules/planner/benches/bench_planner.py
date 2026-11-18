@@ -10,9 +10,9 @@ from planner.src.capabilities_validate_dag import CapabilitiesValidateDag
 from shared.src.planner.taxonomy_planner_request import PrEntryList
 
 
-def _large_design_doc(num_prs: int) -> str:
+def _large_plan_doc(num_prs: int) -> str:
     """Generate a PR Plan section with N chained PRs."""
-    lines = ["# Design", "", "## PR Plan", ""]
+    lines = ["# plan", "", "## PR Plan", ""]
     for i in range(num_prs):
         deps = f"PR {i - 1}" if i > 0 else "none"
         lines.extend(
@@ -29,7 +29,7 @@ def _large_design_doc(num_prs: int) -> str:
 
 def bench_parse_plan() -> None:
     """Benchmark parse_plan with 100 PR entries."""
-    doc = _large_design_doc(100)
+    doc = _large_plan_doc(100)
     parser = CapabilitiesParsePrPlan()
     start = time.perf_counter()
     parser.parse_plan(PrEntryList(text=doc))
@@ -40,7 +40,7 @@ def bench_parse_plan() -> None:
 def bench_validate_dag() -> None:
     """Benchmark validate_dag with 100 chained entries."""
     entries = PrEntryList(
-        text=_large_design_doc(100),
+        text=_large_plan_doc(100),
     )
     parser = CapabilitiesParsePrPlan()
     parse_result = parser.parse_plan(entries)
@@ -56,7 +56,7 @@ def bench_validate_dag() -> None:
 def bench_compute_execution() -> None:
     """Benchmark compute_levels with 100 chained entries."""
     entries = PrEntryList(
-        text=_large_design_doc(100),
+        text=_large_plan_doc(100),
     )
     parser = CapabilitiesParsePrPlan()
     parse_result = parser.parse_plan(entries)

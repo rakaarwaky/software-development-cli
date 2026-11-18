@@ -1,21 +1,66 @@
 # ROADMAP — software-development-cli
 
+## Progress Overview
+
+All six tracked features of `sdc` — CLI surface, host helper, memory helper,
+planner helper, AES architecture compliance, and installer/skill migration —
+are implemented and passing the documented quality gates. The roadmap below
+tracks their priority and state; backlog evidence lives in each feature's
+`BACKLOG.md`.
+
 ## Roadmap Status
 
-| Phase | Status | Description |
-|-------|--------|-------------|
-| PR-sdc-001 | Done | Scaffold AES module structure |
-| PR-sdc-002 | Done | Implement shared taxonomy + contracts + utilities |
-| PR-sdc-003 | Done | Port host.py → sdc host setup/cleanup |
-| PR-sdc-004 | Done | Port memory.py → sdc memory path/read/snapshot/update |
-| PR-sdc-005 | Done | Port validate-plan.py → sdc validate-plan |
-| PR-sdc-006 | Done | Wire CLI surface + root entry + install.sh |
-| PR-sdc-007 | Done | Write docs (AGENTS, ARCHITECTURE, README, PRD, ROADMAP, CONTRIBUTING) |
-| PR-sdc-008 | Done | Test sdc end-to-end + AES lint scan |
-| PR-sdc-009 | Done | Migrate skill references from python3 scripts to sdc |
-| PR-sdc-010 | In Progress | Commit + push + verify on GitHub |
+### PR-SDC-001: CLI Surface
+
+| Aspect       | Detail                                    |
+|--------------|-------------------------------------------|
+| Priority     | P0                                        |
+| State        | Done                                      |
+| Backlog      | [BACKLOG.md](modules/cli/BACKLOG.md)      |
+
+### PR-SDC-002: Host Helper
+
+| Aspect       | Detail                                    |
+|--------------|-------------------------------------------|
+| Priority     | P1                                        |
+| State        | Done                                      |
+| Backlog      | [BACKLOG.md](modules/host/BACKLOG.md)     |
+
+### PR-SDC-003: Memory Helper
+
+| Aspect       | Detail                                    |
+|--------------|-------------------------------------------|
+| Priority     | P1                                        |
+| State        | Done                                      |
+| Backlog      | [BACKLOG.md](modules/memory/BACKLOG.md)   |
+
+### PR-SDC-004: Planner Helper
+
+| Aspect       | Detail                                    |
+|--------------|-------------------------------------------|
+| Priority     | P1                                        |
+| State        | Done                                      |
+| Backlog      | [BACKLOG.md](modules/planner/BACKLOG.md)  |
+
+### PR-SDC-005: AES Architecture Compliance
+
+| Aspect       | Detail                                    |
+|--------------|-------------------------------------------|
+| Priority     | P2                                        |
+| State        | Done                                      |
+| Backlog      | [BACKLOG.md](modules/shared/BACKLOG.md)   |
+
+### PR-SDC-006: Installer and Skill Migration
+
+| Aspect       | Detail                                    |
+|--------------|-------------------------------------------|
+| Priority     | P2                                        |
+| State        | Done                                      |
+| Backlog      | [BACKLOG.md](modules/cli/BACKLOG.md)      |
 
 ## Reference
 
-- [PRD.md](PRD.md)
-- [ARCHITECTURE.md](ARCHITECTURE.md)
+| Artifact     | Purpose                                    | Link                       |
+|--------------|--------------------------------------------|----------------------------|
+| PRD          | Business goals, user stories, and scope    | [PRD.md](PRD.md)           |
+| Architecture | System boundaries, tech stack, and infra   | [ARCHITECTURE.md](ARCHITECTURE.md) |

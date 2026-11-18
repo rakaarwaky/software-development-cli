@@ -1,21 +1,31 @@
-# software-development-cli (`sdc`)
+# README — software-development-cli (`sdc`)
 
-`sdc` is the single binary that consolidates the helper scripts used by the
-`software-development` skills (`implement`, `design`, `execute-plan`) into one
-stdlib-only Python CLI.
+## Project Overview
+
+`sdc` is a single stdlib-only Python CLI that consolidates the helper scripts
+used by the `software-development` skills (`implement`, `design`, `execute-plan`)
+into one binary. It replaces the per-skill `scripts/host.py`,
+`scripts/memory.py`, and `scripts/validate-plan.py` calls with a uniform
+`sdc <subcommand>` surface, so skill step files stay thin and consistent.
+
+## Prerequisites
+
+- Python 3.9 or newer
+- `uv` (Python package manager), confirmed with `uv --version`
+- `bash` (for `scripts/install.sh`)
+- `lint-arwaky-cli` and `mypy` for the quality gates (CI installs them; local runs need them on `PATH`)
 
 ## Quick Start
 
-| Step | Command |
-|------|---------|
-| Install | `bash scripts/install.sh` |
-| Host setup | `sdc host setup --subdir implement` |
-| Memory path | `sdc memory path` |
-| Memory snapshot | `sdc memory snapshot` |
-| Memory update | `echo '{"patterns":[...]}' \| sdc memory update` |
-| Validate plan | `sdc validate-plan <design-doc-path>` |
-
-## Subcommands
+| Step | Action | Command |
+|------|--------|---------|
+| 1 | Verify prerequisites | `bash scripts/install.sh --check` |
+| 2 | Install | `bash scripts/install.sh` (local XDG `~/.local/bin/sdc`) or `bash scripts/install.sh --global` (system-wide, needs sudo) |
+| 3 | Host setup | `sdc host setup --subdir implement` |
+| 4 | Memory path | `sdc memory path` |
+| 5 | Memory snapshot | `sdc memory snapshot` |
+| 6 | Memory update | `echo '{"patterns":[...]}' \| sdc memory update` |
+| 7 | Validate plan | `sdc validate-plan <design-doc-path>` |
 
 ### `sdc host <setup|cleanup>`
 
@@ -31,26 +41,14 @@ stdlib-only Python CLI.
 
 ### `sdc validate-plan <design-doc-path>`
 
-Validates the `## PR Plan` section of a design document: parses PR entries,
-validates the dependency DAG (unique IDs, valid references, no cycles),
-computes level assignments, and reports max parallelism as JSON.
-
-## Installation
-
-```bash
-bash scripts/install.sh          # Local XDG install (~/.local/bin/sdc)
-bash scripts/install.sh --global # System-wide (/usr/local/bin/sdc, requires sudo)
-bash scripts/install.sh --check  # Verify prerequisites only
-```
-
-## AES Architecture
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the layer contract and import rules.
+Validates the `## PR Plan` section of a design document: parses PR entries, validates the dependency DAG (unique IDs, valid references, no cycles), computes level assignments, and reports max parallelism as JSON.
 
 ## Reference
 
-- [AGENTS.md](AGENTS.md) — Operational guide for agents
-- [CONTRIBUTING.md](CONTRIBUTING.md) — Branch, commit, and PR conventions
-- [ARCHITECTURE.md](ARCHITECTURE.md) — Layer contract
-- [ROADMAP.md](ROADMAP.md) — What ships next
-- [PRD.md](PRD.md) — What the product does and why
+| Artifact | Purpose | Link |
+|----------|---------|------|
+| PRD | What sdc does and why | [PRD.md](PRD.md) |
+| Roadmap | What ships next, in order | [ROADMAP.md](ROADMAP.md) |
+| Architecture | Layer contract and linter rules | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| Agent guide | How to work safely in this repo | [AGENTS.md](AGENTS.md) |
+| Contributing | Branch, commit, and PR conventions | [CONTRIBUTING.md](CONTRIBUTING.md) |

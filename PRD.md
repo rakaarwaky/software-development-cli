@@ -38,10 +38,10 @@ each added skill.
 
 ### In Scope
 
-- `sdc host setup|cleanup` for per-repo artifact directories.
-- `sdc memory path|read|snapshot|update` for per-repo memory files.
-- `sdc validate-plan` for PR-plan DAG validation.
-- AES 7-layer module layout under `modules/` with the quality gates from `AGENTS.md`.
+- `sdc host setup|cleanup` for per-repo artifact directories, implemented on the AES 7-layer architecture and shipped through the XDG installer.
+- `sdc memory path|read|snapshot|update` for per-repo memory files, implemented on the AES 7-layer architecture and shipped through the XDG installer.
+- `sdc validate-plan` for PR-plan DAG validation, implemented on the AES 7-layer architecture and shipped through the XDG installer.
+- `sdc` CLI surface dispatching to host, memory, and planner contracts, shipped through `scripts/install.sh` to `~/.local/bin/sdc`.
 
 ### Out of Scope
 
@@ -59,12 +59,15 @@ each added skill.
 
 | As a | I want | So that | Priority |
 |------|--------|---------|----------|
-| Skill author | to call `sdc host|memory|validate-plan` with flags | skill step files stay thin | P0 |
+| Skill author | to call `sdc host|memory|validate-plan` with flags, installed via `scripts/install.sh` and built on the AES 7-layer architecture | skill step files stay thin | P0 |
 
 #### Proposed Solution
 
 A single `sdc` entry point parses argv, dispatches each subcommand to its
 contract aggregate, and renders JSON output to stdout with exit codes 0/1/2/3/4.
+The `modules/` tree follows the AES 7-layer architecture wired from a root
+entry, CI runs `lint-arwaky-cli scan modules`, `pytest`, and `mypy`, and
+`scripts/install.sh` installs `sdc` to `~/.local/bin/sdc`.
 
 #### Main User Flow
 
@@ -133,46 +136,6 @@ no cycles), computes level assignments, and reports max parallelism as JSON.
 1. Author saves a design document with a `## PR Plan` section.
 2. Author runs `sdc validate-plan <design-doc-path>`.
 3. `sdc` prints a JSON report with `valid`, `pr_count`, `levels`, `max_parallelism`, and any errors.
-
-### PR-SDC-005: AES Architecture Compliance
-
-#### User Stories
-
-| As a | I want | So that | Priority |
-|------|--------|---------|----------|
-| CI maintainer | to enforce the AES 7-layer contract on every change | the codebase stays navigable for agents | P2 |
-
-#### Proposed Solution
-
-The `modules/` tree follows the AES 7-layer architecture with taxonomy,
-contract, capabilities, agent, surface, and root layers wired from a root
-entry. CI runs `lint-arwaky-cli scan modules`, `pytest`, and `mypy` on every PR.
-
-#### Main User Flow
-
-1. Contributor edits files under `modules/`.
-2. Contributor runs `lint-arwaky-cli scan modules` and `python3 -m pytest modules/ -q` locally.
-3. CI repeats the gates; the PR merges only when all pass.
-
-### PR-SDC-006: Installer and Skill Migration
-
-#### User Stories
-
-| As a | I want | So that | Priority |
-|------|--------|---------|----------|
-| Skill maintainer | to install `sdc` into `~/.local/bin` and migrate skill references | skills call `sdc` from a stable XDG path | P2 |
-
-#### Proposed Solution
-
-`scripts/install.sh` installs `sdc` to `~/.local/bin/sdc` (local) or
-`/usr/local/bin/sdc` (`--global`), and `--check` verifies prerequisites.
-Skill step files are migrated from `python3 .../scripts/*.py` to `sdc ...`.
-
-#### Main User Flow
-
-1. Maintainer runs `bash scripts/install.sh --check` to verify prerequisites.
-2. Maintainer runs `bash scripts/install.sh` to install locally.
-3. Skill references are updated to call `sdc` subcommands.
 
 ## Reference
 

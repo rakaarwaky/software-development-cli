@@ -2,11 +2,11 @@
 
 ## Progress Overview
 
-All six tracked features of `sdc` — CLI surface, host helper, memory helper,
-planner helper, AES architecture compliance, and installer/skill migration —
-are implemented and passing the documented quality gates. The roadmap below
-tracks their priority and state; backlog evidence lives in each feature's
-`BACKLOG.md`.
+All four tracked features of `sdc` — CLI surface, host helper, memory helper,
+and planner helper — are implemented on the AES 7-layer architecture, shipped
+through the XDG installer, and passing the documented quality gates. The
+roadmap below tracks their priority and state; backlog evidence lives in each
+feature's `BACKLOG.md`.
 
 ## Roadmap Status
 
@@ -41,22 +41,6 @@ tracks their priority and state; backlog evidence lives in each feature's
 | Priority     | P1                                        |
 | State        | Done                                      |
 | Backlog      | [BACKLOG.md](modules/planner/BACKLOG.md)  |
-
-### PR-SDC-005: AES Architecture Compliance
-
-| Aspect       | Detail                                    |
-|--------------|-------------------------------------------|
-| Priority     | P2                                        |
-| State        | Done                                      |
-| Backlog      | [BACKLOG.md](modules/shared/BACKLOG.md)   |
-
-### PR-SDC-006: Installer and Skill Migration
-
-| Aspect       | Detail                                    |
-|--------------|-------------------------------------------|
-| Priority     | P2                                        |
-| State        | Done                                      |
-| Backlog      | [BACKLOG.md](modules/cli/BACKLOG.md)      |
 
 ## Reference
 

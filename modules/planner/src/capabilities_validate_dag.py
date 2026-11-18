@@ -59,7 +59,6 @@ def _detect_cycles(entries: list[PrEntry]) -> list[str]:
     """Kahn's algorithm for topological sort; returns cycle errors."""
     in_degree: dict[str, int] = {e.id: 0 for e in entries}
     children: dict[str, list[str]] = defaultdict(list)
-    dep_map: dict[str, list[str]] = {e.id: e.dependencies for e in entries}
 
     for entry in entries:
         for dep in entry.dependencies:
@@ -83,34 +82,4 @@ def _detect_cycles(entries: list[PrEntry]) -> list[str]:
         return []
 
     unvisited = [e.id for e in entries if in_degree[e.id] > 0]
-    cycle = _trace_cycle(dep_map, unvisited)
-    if cycle:
-        return [f"Cycle detected: {' -> '.join(cycle)}"]
     return [f"Cycle detected involving: {', '.join(sorted(unvisited))}"]
-
-
-def _trace_cycle(
-    dep_map: dict[str, list[str]], unvisited_ids: list[str]
-) -> list[str] | None:
-    """Walk deps among *unvisited_ids* to report one cycle path."""
-    unvisited = set(unvisited_ids)
-    current = unvisited_ids[0]
-    path = [current]
-    visited_in_path = {current}
-
-    while True:
-        next_node = None
-        for dep in dep_map.get(current, []):
-            if dep in unvisited:
-                next_node = dep
-                break
-        if next_node is None:
-            break
-        if next_node in visited_in_path:
-            idx = path.index(next_node)
-            return path[idx:] + [next_node]
-        path.append(next_node)
-        visited_in_path.add(next_node)
-        current = next_node
-
-    return None

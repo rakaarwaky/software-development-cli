@@ -22,9 +22,16 @@ class CapabilitiesParsePrPlan(IPlanParseProtocol):
 
     # ─── Block 2: Module Contract ──────────────────────────────────────
 
-    def parse_plan(self, plan_text: str) -> ParseResult:
-        """Parse ``plan_text`` into PR entries or return parse errors."""
-        stripped = _strip_fenced_code_blocks(plan_text)
+    def parse_plan(self, plan_text: PrEntryList) -> ParseResult:
+        """Parse ``plan_text`` into PR entries.
+
+        Returns ``ok=True`` with the parsed entries; non-fatal dependency
+        format errors are collected alongside valid entries in ``errors``.
+        Returns ``ok=False`` with errors only when the document lacks a
+        ``## PR Plan`` section or contains no PR entries.
+        """
+        text = plan_text.text
+        stripped = _strip_fenced_code_blocks(text)
         heading = re.search(r"^## PR Plan\s*$", stripped, re.MULTILINE)
         if heading is None:
             return ParseResult(
@@ -87,7 +94,11 @@ class CapabilitiesParsePrPlan(IPlanParseProtocol):
             )
 
         if parse_errors:
-            return ParseResult(ok=False, errors=parse_errors)
+            return ParseResult(
+                ok=True,
+                entries=entries,
+                errors=parse_errors,
+            )
         return ParseResult(ok=True, entries=entries)
 
     # ─── Block 3: Module Helpers ───────────────────────────────────────

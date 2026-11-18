@@ -25,7 +25,10 @@ class PlanResult:
 
     On success: ``valid=True``, ``pr_count``, ``levels``,
     ``max_parallelism``, ``linearized_order``, ``level_assignments``.
-    On failure: ``valid=False``, ``errors`` holds the error strings.
+    On failure: failures are surfaced as raised exceptions
+    (``PlanParseError`` exit code 4, ``PlanValidationError`` exit code 1,
+    ``PlanUsageError`` exit code 2). The ``errors`` field may carry
+    non-fatal parse warnings collected alongside valid entries.
     """
 
     valid: bool = False
@@ -44,7 +47,8 @@ class PlanResult:
 class PrEntryList:
     """A parsed list of PR entries from the PR Plan section."""
 
-    entries: list[PrEntry]
+    text: str = ""
+    entries: list[PrEntry] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

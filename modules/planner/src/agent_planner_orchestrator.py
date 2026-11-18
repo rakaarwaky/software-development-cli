@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from shared.src.common.taxonomy_sdc_error import (
+    PlanParseError,
     PlanUsageError,
     PlanValidationError,
 )
@@ -18,7 +19,11 @@ from shared.src.planner.contract_planner_protocol import (
     IPlanParseProtocol,
     IPlanValidateProtocol,
 )
-from shared.src.planner.taxonomy_planner_request import PlanRequest, PlanResult
+from shared.src.planner.taxonomy_planner_request import (
+    PlanRequest,
+    PlanResult,
+    PrEntryList,
+)
 
 # ─── Block 1: Module Declaration ──────────────────────────────────────
 
@@ -62,10 +67,9 @@ class AgentPlanner(IPlanAggregate):
             raise PlanUsageError(f"Cannot read file {path}: {exc}")
 
         # Step 1: Parse
-        from shared.src.planner.taxonomy_planner_request import PrEntryList
-        parse_result = self._parser.parse_plan(content)
+        parse_result = self._parser.parse_plan(PrEntryList(text=content))
         if not parse_result.ok:
-            raise PlanValidationError("\n".join(parse_result.errors))
+            raise PlanParseError("\n".join(parse_result.errors))
 
         # Step 2: Validate DAG
         validate_result = self._validator.validate_dag(
@@ -86,7 +90,7 @@ class AgentPlanner(IPlanAggregate):
             max_parallelism=compute_result.max_parallelism,
             linearized_order=compute_result.linearized_order,
             level_assignments=compute_result.level_assignments,
-            errors=[],
+            errors=list(parse_result.errors),
         )
 
     def __repr__(self) -> str:

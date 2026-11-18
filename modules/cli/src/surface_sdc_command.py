@@ -23,6 +23,7 @@ from shared.src.common.taxonomy_sdc_error import (
     HostError,
     LockTimeoutError,
     MemoryHelperError,
+    PlanParseError,
     PlanUsageError,
     PlanValidationError,
     SdcError,
@@ -253,6 +254,9 @@ def cmd_sdc(argv: list[str]) -> int:
         print(f"sdc: {exc}", file=sys.stderr)
         return exc.exit_code
     except PlanValidationError as exc:
+        print(json.dumps({"valid": False, "errors": [str(exc)]}, indent=2), file=sys.stderr)
+        return exc.exit_code
+    except PlanParseError as exc:
         print(json.dumps({"valid": False, "errors": [str(exc)]}, indent=2), file=sys.stderr)
         return exc.exit_code
     except OSError as exc:

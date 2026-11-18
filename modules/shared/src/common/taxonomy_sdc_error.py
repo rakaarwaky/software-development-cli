@@ -51,6 +51,12 @@ class PlanValidationError(SdcError):
     exit_code = 1
 
 
+class PlanParseError(SdcError):
+    """Raised when the PR Plan document cannot be parsed (missing section, no entries)."""
+
+    exit_code = 4
+
+
 class PlanUsageError(SdcError):
     """Raised when validate-plan receives a bad argv or unreadable file."""
 

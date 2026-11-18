@@ -421,12 +421,12 @@ def merge_run(state: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
             else:
                 if not isinstance(category_raw, str):
                     raise SpecError(f'"patterns[{idx}].category" must be a string')
-                category = sanitize_one_line(category_raw) or "Other"
+                category = _sanitize_one_line(category_raw) or "Other"
 
             desc_raw = raw.get("description")
             if desc_raw is not None and not isinstance(desc_raw, str):
                 raise SpecError(f'"patterns[{idx}].description" must be a string')
-            description = sanitize_one_line(desc_raw or "")
+            description = _sanitize_one_line(desc_raw or "")
             if not description:
                 continue
 
@@ -434,7 +434,7 @@ def merge_run(state: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
             entries = state["common_issues"].setdefault(category, [])
             lookup = category_lookups.get(category)
             if lookup is None:
-                lookup = {normalize(e["description"]): e for e in entries}
+                lookup = {_normalize(e["description"]): e for e in entries}
                 category_lookups[category] = lookup
             if bump_or_append(entries, lookup, description):
                 stats["merged_patterns"] += 1
@@ -480,7 +480,7 @@ def merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[str
     desc_raw = run.get("description")
     if desc_raw is not None and not isinstance(desc_raw, str):
         raise SpecError('"run.description" must be a string')
-    description = sanitize_one_line(desc_raw or "") or "(no description)"
+    description = _sanitize_one_line(desc_raw or "") or "(no description)"
     description = description.replace('"', "").strip() or "(no description)"
     description = f'"{description}"'
 
@@ -516,7 +516,7 @@ def merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[str
         for i, p in enumerate(key_patterns_raw):
             if not isinstance(p, str):
                 raise SpecError(f'"run.key_patterns[{i}]" must be a string')
-            cleaned_kp.append(sanitize_one_line(p))
+            cleaned_kp.append(_sanitize_one_line(p))
         cleaned_kp = [p for p in cleaned_kp if p]
         if cleaned_kp:
             body_lines.append(f"- **Key patterns**: {', '.join(cleaned_kp)}")
@@ -529,7 +529,7 @@ def merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[str
         for i, s in enumerate(specs_raw):
             if not isinstance(s, str):
                 raise SpecError(f'"run.specializations[{i}]" must be a string')
-            cleaned_specs.append(sanitize_one_line(s))
+            cleaned_specs.append(_sanitize_one_line(s))
         cleaned_specs = [s for s in cleaned_specs if s]
         if cleaned_specs:
             body_lines.append(f"- **Specializations used**: {', '.join(cleaned_specs)}")

@@ -47,7 +47,8 @@ class PlanResult:
 class PrEntryList:
     """A parsed list of PR entries from the PR Plan section."""
 
-    entries: list[PrEntry]
+    text: str = ""
+    entries: list[PrEntry] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

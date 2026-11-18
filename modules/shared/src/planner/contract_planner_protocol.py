@@ -22,7 +22,7 @@ class IPlanParseProtocol(ABC):
     """Parse the ``## PR Plan`` section of a design document."""
 
     @abstractmethod
-    def parse_plan(self, plan_text: str) -> ParseResult:
+    def parse_plan(self, plan_text: PrEntryList) -> ParseResult:
         """Parse ``plan_text`` into PR entries or a parse error."""
         ...
 

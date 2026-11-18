@@ -87,7 +87,7 @@ class TestParseHappyPath:
     """Three valid PR entries → 3 entries with IDs, titles, files, deps, descriptions."""
 
     def test_returns_three_entries(self, parser):
-        result = parser.parse_plan(DOC_THREE_VALID)
+        result = parser.parse_plan(PrEntryList(text=DOC_THREE_VALID))
 
         assert result.ok is True
         assert len(result.entries) == 3
@@ -167,7 +167,7 @@ class TestParseBadDependencyFormat:
 - Dependencies: none
 - Description: Another entry
 """
-        result = parser.parse_plan(doc)
+        result = parser.parse_plan(PrEntryList(text=doc))
 
         assert result.ok is True
         assert len(result.entries) == 2
@@ -198,7 +198,7 @@ class TestParseFencedCodeBlocks:
 - Dependencies: PR 1
 - Description: Yet another real entry
 """
-        result = parser.parse_plan(doc)
+        result = parser.parse_plan(PrEntryList(text=doc))
 
         assert result.ok is True
         assert len(result.entries) == 2

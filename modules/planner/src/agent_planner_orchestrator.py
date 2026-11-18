@@ -67,7 +67,7 @@ class AgentPlanner(IPlanAggregate):
             raise PlanUsageError(f"Cannot read file {path}: {exc}")
 
         # Step 1: Parse
-        parse_result = self._parser.parse_plan(content)
+        parse_result = self._parser.parse_plan(PrEntryList(text=content))
         if not parse_result.ok:
             raise PlanParseError("\n".join(parse_result.errors))
 

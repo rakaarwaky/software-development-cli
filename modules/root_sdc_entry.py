@@ -28,41 +28,17 @@ bootstrap_ns_roots()
 
 
 def _wire_capabilities() -> None:
-    """Instantiate the capabilities and inject them into the surface."""
+    """Construct the feature aggregates via their composition roots and
+    inject them into the surface."""
     from cli.src.surface_sdc_command import set_capabilities
-    from host.src.agent_host_orchestrator import HostAgent
-    from host.src.capabilities_host_cleanup import CapabilitiesHostCleanup
-    from host.src.capabilities_host_setup import CapabilitiesHostSetup
-    from memory.src.agent_memory_orchestrator import AgentMemory
-    from memory.src.capabilities_memory_path import CapabilitiesPath
-    from memory.src.capabilities_memory_reader import CapabilitiesReader
-    from memory.src.capabilities_memory_snapshot import CapabilitiesSnapshot
-    from memory.src.capabilities_memory_writer import CapabilitiesWriter
-    from planner.src.agent_planner_orchestrator import AgentPlanner
-    from planner.src.capabilities_compute_execution import CapabilitiesComputeExecution
-    from planner.src.capabilities_parse_pr_plan import CapabilitiesParsePrPlan
-    from planner.src.capabilities_validate_dag import CapabilitiesValidateDag
-
-    parser = CapabilitiesParsePrPlan()
-    validator = CapabilitiesValidateDag()
-    computer = CapabilitiesComputeExecution()
+    from host.src.root_host_container import create_host_feature
+    from memory.src.root_memory_container import create_memory_feature
+    from planner.src.root_planner_container import create_planner_feature
 
     set_capabilities(
-        host=HostAgent(
-            setup_cap=CapabilitiesHostSetup(),
-            cleanup_cap=CapabilitiesHostCleanup(),
-        ),
-        memory=AgentMemory(
-            path_cap=CapabilitiesPath(),
-            reader_cap=CapabilitiesReader(),
-            snapshot_cap=CapabilitiesSnapshot(),
-            writer_cap=CapabilitiesWriter(),
-        ),
-        planner=AgentPlanner(
-            parser=parser,
-            validator=validator,
-            computer=computer,
-        ),
+        host=create_host_feature(),
+        memory=create_memory_feature(),
+        planner=create_planner_feature(),
     )
 
 

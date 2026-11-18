@@ -23,8 +23,9 @@ SKILL_SUBDIR_EXECUTE: Final = "execute"
 
 # ─── Memory file ───────────────────────────────────────────────────────
 
-#: Directory under the user's home where per-workspace memory files live.
-MEMORY_DIR_NAME: Final = "implement-memory"
+#: Per-repo subdir under ``~/.agents/develop/<reponame>/`` that holds the
+#: memory file and its lock sibling.
+MEMORY_SUBDIR: Final = "memory"
 
 #: Maximum patterns per category before compaction drops lowest-count entries.
 MAX_PATTERNS_PER_CATEGORY: Final = 25

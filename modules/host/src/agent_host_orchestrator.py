@@ -6,24 +6,27 @@ calls the agent; the agent dispatches to the right capability.
 
 from __future__ import annotations
 
-from shared.src.common.taxonomy_sdc_error import HostError
-from shared.src.host.contract_host_protocol import IHostProtocol
+from shared.src.common.taxonomy_sdc_constant import SKILL_SUBDIR_EXECUTE
+from shared.src.common.taxonomy_sdc_constant import SKILL_SUBDIR_IMPLEMENT
+from shared.src.common.taxonomy_sdc_constant import SKILL_SUBDIR_PLAN
+from shared.src.host.contract_host_aggregate import IHostAggregate
 from shared.src.host.taxonomy_host_request import HostRequest, HostResult
-from host.src.capabilities_host_implement import HostImplement
-from host.src.capabilities_host_design import HostDesign
-from host.src.capabilities_host_execute import HostExecute
+from shared.src.host.utility_host_helper import (
+    make_cleanup_result,
+    make_setup_result,
+    resolve_subdir,
+)
 
 
-class HostAgent:
+# ─── Block 1: Module Declaration ───────────────────────────────────────
+
+class HostAgent(IHostAggregate):
     """Agent orchestrator for the host feature.
 
     Composes the three per-skill capabilities and routes by subdir.
     """
 
-    def __init__(self) -> None:
-        self._implement: IHostProtocol = HostImplement()
-        self._design: IHostProtocol = HostDesign()
-        self._execute: IHostProtocol = HostExecute()
+    # ─── Block 2: Module Contract ──────────────────────────────────────
 
     def dispatch(self, request: HostRequest, *, subdir: str) -> HostResult:
         """Route a host request to the right capability.
@@ -33,10 +36,23 @@ class HostAgent:
             subdir: One of ``implement``, ``plan``, ``execute``, or ``""``
                 (empty string routes cleanup to the implement capability).
         """
-        if subdir == "implement":
-            return self._implement.execute(request)
+        if request.action == "setup":
+            return self._setup(subdir)
+        if request.action == "cleanup":
+            return make_cleanup_result(request.paths or [])
+        raise ValueError(
+            f"host: unknown action {request.action!r}; expected 'setup' or 'cleanup'"
+        )
+
+    # ─── Block 3: Module Helpers ───────────────────────────────────────
+
+    def _setup(self, subdir: str) -> HostResult:
+        """Build the setup result for ``subdir``."""
         if subdir == "plan":
-            return self._design.execute(request)
+            resolve_subdir(SKILL_SUBDIR_PLAN)
+            return make_setup_result(SKILL_SUBDIR_PLAN)
         if subdir == "execute":
-            return self._execute.execute(request)
-        return self._implement.execute(request)
+            resolve_subdir(SKILL_SUBDIR_EXECUTE)
+            return make_setup_result(SKILL_SUBDIR_EXECUTE)
+        resolve_subdir(SKILL_SUBDIR_IMPLEMENT)
+        return make_setup_result(SKILL_SUBDIR_IMPLEMENT)

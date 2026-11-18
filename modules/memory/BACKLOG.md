@@ -1,24 +1,24 @@
-# BACKLOG — Memory Store
+# BACKLOG — Memory Helper
 
-## Backlog
+## Progress Overview
+
+The memory helper feature is implemented: per-repo memory under `~/.agents/develop/<reponame>/memory/` with path resolution, markdown read/snapshot/update.
+
+## Backlog Status
 
 | ID | Status | Description | Priority |
 |----|--------|-------------|----------|
-| BL-MEM-001 | Done | Path resolution (git remote → common dir → cwd) | P0 |
-| BL-MEM-002 | Done | Read subcommand | P0 |
-| BL-MEM-003 | Done | Snapshot subcommand | P0 |
-| BL-MEM-004 | Done | Update with fcntl locking + atomic write | P0 |
-| BL-MEM-005 | Done | Deterministic dedup + compaction | P0 |
-| BL-MEM-006 | Todo | Windows msvcrt.locking test coverage | P2 |
+| BL-MEM-001 | Done | Per-repo memory root (`memory/`) under the host setup | P0 |
+| BL-MEM-002 | Done | Markdown read, snapshot, and update actions | P0 |
+| BL-MEM-003 | Done | Merge-on-update (append missing lines to the target section) | P0 |
+| BL-MEM-004 | Done | File lock for concurrent agent writes | P0 |
+| BL-MEM-005 | Done | AGENTS.md conflict check + backup before merge | P0 |
+| BL-MEM-006 | Done | Canonical block markers in capability implementation | P0 |
+| BL-MEM-007 | Todo | Memory migration (merge legacy `MEMORY.md` into topic files) | P2 |
 
-## Done
+## Reference
 
-- All subcommands ported from `scripts/memory.py`
-- fcntl locking on POSIX, msvcrt locking on Windows
-- Atomic temp-file + rename writes
-- Deterministic dedup via normalize() + category canonicalization
-
-## Next
-
-- Windows CI coverage
-- Performance profiling for large memory files
+- [ARCHITECTURE.md](../../ARCHITECTURE.md)
+- [FRD.md](FRD.md)
+- [PRD.md](../../PRD.md)
+- [ROADMAP.md](../../ROADMAP.md)

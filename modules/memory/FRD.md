@@ -12,7 +12,7 @@ memory files with concurrency-safe atomic writes and deterministic dedup.
 | Aspect | Detail |
 |--------|--------|
 | Input | git remote origin URL or git toplevel dir or cwd |
-| Output | `~/.agents/implement-memory/<workspace-id>.md` |
+| Output | `~/.agents/develop/<reponame>/memory/<workspace-id>.md` |
 | Protocol | `IMemoryAggregate` |
 | Method | `MemoryStore.execute(MemoryRequest(action="path"))` |
 | Event | none |

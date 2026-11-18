@@ -1,23 +1,21 @@
-# BACKLOG — Shared Kernel
+# BACKLOG — Shared
 
-## Backlog
+## Progress Overview
+
+The shared layer is implemented: taxonomy and contract (ABC) modules for host, memory, and planner, plus the sdc common utility (arg parsing, errors, paths, output).
+
+## Backlog Status
 
 | ID | Status | Description | Priority |
 |----|--------|-------------|----------|
-| BL-SHARED-001 | Done | Taxonomy constants (paths, memory config, naming) | P0 |
-| BL-SHARED-002 | Done | Taxonomy errors (SdcError hierarchy) | P0 |
-| BL-SHARED-003 | Done | Taxonomy VOs (HostSetup, Pattern, PrEntry, PlanReport) | P0 |
-| BL-SHARED-004 | Done | Common utilities (slugify, canonicalize, normalize) | P0 |
-| BL-SHARED-005 | Done | Host contract (IHostAggregate) | P0 |
-| BL-SHARED-006 | Done | Memory contract (IMemoryAggregate) | P0 |
-| BL-SHARED-007 | Done | Planner contract (IPlanAggregate) | P0 |
+| BL-SH-001 | Done | Taxonomy modules (host request/result, memory, planner) | P0 |
+| BL-SH-002 | Done | Contracts as ABC + abstractmethod (protocol classes) | P0 |
+| BL-SH-003 | Done | sdc common utility: parsing, errors, paths, output | P0 |
+| BL-SH-004 | Done | Migrate skill helpers from `python3 scripts/*.py` to `sdc` subcommands | P0 |
 
-## Done
+## Reference
 
-- Shared kernel established with taxonomy + contract + utility layers
-- All contracts follow AES402 (ABC with abstractmethod)
-- All taxonomy files follow AES401 (pure data, no I/O)
-
-## Next
-
-- None pending
+- [ARCHITECTURE.md](../../ARCHITECTURE.md)
+- [FRD.md](FRD.md)
+- [PRD.md](../../PRD.md)
+- [ROADMAP.md](../../ROADMAP.md)

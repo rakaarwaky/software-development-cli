@@ -29,7 +29,7 @@ from shared.src.common.taxonomy_sdc_constant import (
     LOCK_TIMEOUT_SECONDS,
     MAX_PATTERNS_PER_CATEGORY,
     MAX_RECENT_RUNS,
-    MEMORY_DIR_NAME,
+    MEMORY_SUBDIR,
     RUN_RE,
     SECTION_COMMON_ISSUES_RE,
     SECTION_RECENT_RUNS_RE,
@@ -45,6 +45,7 @@ from shared.src.common.utility_sdc_common import (
     canonicalize_remote,
     git_output,
     normalize,
+    repo_slug,
     sanitize_one_line,
 )
 from shared.src.memory.contract_memory_aggregate import IMemoryAggregate
@@ -123,7 +124,10 @@ def get_workspace_id() -> str:
 
 
 def memory_paths(*, create_dir: bool = False) -> dict[str, Path]:
-    """Return ``{"dir", "file", "lock"}`` for this workspace.
+    """Return ``{"dir", "file", "lock"}`` for this repo.
+
+    Path is ``~/.agents/develop/<reponame>/memory/<reponame>-<hash12>.md``,
+    matching the per-repo artifact root layout used by the other skills.
 
     Raises ``WorkspaceIdError`` on unrecoverable HOME / workspace-id failures.
     """
@@ -133,7 +137,11 @@ def memory_paths(*, create_dir: bool = False) -> dict[str, Path]:
         raise WorkspaceIdError(
             "could not determine the user's home directory ($HOME unset and pwd lookup failed)"
         )
-    base = home / ".agents" / MEMORY_DIR_NAME
+    try:
+        slug = repo_slug()
+    except Exception as exc:
+        raise WorkspaceIdError(f"could not determine repo slug: {exc}")
+    base = home / ".agents" / "develop" / slug / MEMORY_SUBDIR
     if create_dir:
         try:
             base.mkdir(parents=True, exist_ok=True)

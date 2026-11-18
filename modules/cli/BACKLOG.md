@@ -1,24 +1,23 @@
 # BACKLOG — CLI Surface
 
-## Backlog
+## Progress Overview
+
+The `sdc` surface is implemented: stdlib-only argument parsing with host, memory, plan, and helper-doc subcommands, exit codes 0/1/2/3/4, and capability injection from the root entry point.
+
+## Backlog Status
 
 | ID | Status | Description | Priority |
 |----|--------|-------------|----------|
-| BL-CLI-001 | Done | Subcommand dispatch (host/memory/validate-plan) | P0 |
-| BL-CLI-002 | Done | Host setup/cleanup via IHostAggregate | P0 |
-| BL-CLI-003 | Done | Memory path/read/snapshot/update via IMemoryAggregate | P0 |
-| BL-CLI-004 | Done | Validate-plan via IPlanAggregate | P0 |
-| BL-CLI-005 | Done | Capability injection via set_capabilities | P0 |
-| BL-CLI-006 | Todo | Add --help text for each subcommand | P2 |
-| BL-CLI-007 | Todo | Add shell completion support | P3 |
+| BL-CLI-001 | Done | `sdc host setup --subdir implement/design/execute-plan` | P0 |
+| BL-CLI-002 | Done | `sdc host cleanup --path <workspace> [...]` | P0 |
+| BL-CLI-003 | Done | `sdc memory path|read|snapshot|update` (subdir omitted = host root) | P0 |
+| BL-CLI-004 | Done | `sdc validate-plan <plan-file>` | P1 |
+| BL-CLI-005 | Done | Exit codes 0/1/2/3/4 with stderr messages | P0 |
+| BL-CLI-006 | Done | Capabilities injected via `set_capabilities` from the root entry | P0 |
 
-## Done
+## Reference
 
-- All core subcommands implemented and tested end-to-end
-- AES contract compliance (no surface→capabilities direct imports)
-- Capability injection pattern via root entry point
-
-## Next
-
-- Add shell completion
-- Add --help text refinement
+- [ARCHITECTURE.md](../../ARCHITECTURE.md)
+- [FRD.md](FRD.md)
+- [PRD.md](../../PRD.md)
+- [ROADMAP.md](../../ROADMAP.md)

@@ -7,6 +7,12 @@ Pure-data VOs for the host helper contract. The CLI surface builds a
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import NewType
+
+from shared.src.common.taxonomy_sdc_vo import SkillSubdir
+
+HostAction = NewType("HostAction", str)
+"""One of ``setup`` or ``cleanup`` — identifies the host capability to dispatch."""
 
 
 @dataclass(frozen=True)
@@ -18,8 +24,8 @@ class HostRequest:
     For ``cleanup``, ``paths`` holds the file paths to unlink.
     """
 
-    action: str
-    subdir: str = ""
+    action: HostAction
+    subdir: SkillSubdir = ""
     paths: list[str] | None = None
 
 

@@ -6,9 +6,11 @@ JSON snapshot {common_issues, recent_runs, exists}.
 
 from __future__ import annotations
 
+from shared.src.common.taxonomy_sdc_vo import WorkspaceId
 from shared.src.memory.contract_memory_protocol import IMemorySnapshotProtocol
 from shared.src.memory.utility_memory_helper import (
     build_snapshot_payload,
+    get_workspace_id,
     memory_paths,
     parse_memory_file,
 )
@@ -25,6 +27,7 @@ class CapabilitiesSnapshot(IMemorySnapshotProtocol):
     # ─── Block 2: Module Contract ──────────────────────────────────────
 
     def read_snapshot(self) -> dict[str, object]:
+        _ = WorkspaceId(get_workspace_id())
         f = memory_paths()["file"]
         if f.exists():
             state = parse_memory_file(f.read_text(encoding="utf-8"))

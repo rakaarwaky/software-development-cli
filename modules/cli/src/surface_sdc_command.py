@@ -193,11 +193,11 @@ def set_capabilities(
     _PLANNER_CAPABILITY = planner
 
 
-def _call_host(request: HostRequest, *, subdir: str) -> HostResult:
+def _call_host(request: HostRequest) -> HostResult:
     """Route a host request through the agent orchestrator."""
     if _HOST_AGENT is None:
         raise HostError("host agent not wired; call set_capabilities first")
-    return _HOST_AGENT.dispatch(request, subdir=subdir)
+    return _HOST_AGENT.dispatch(request)
 
 
 def _call_memory(request: MemoryRequest) -> MemoryResult:

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from shared.src.common.taxonomy_sdc_vo import SkillSubdir
 from shared.src.host.taxonomy_host_request import HostResult
 
 
@@ -16,7 +17,7 @@ class IHostSetupProtocol(ABC):
     """Setup artifact root capability seam."""
 
     @abstractmethod
-    def setup(self, subdir: str) -> HostResult:
+    def setup(self, subdir: SkillSubdir) -> HostResult:
         """Create ~/.agents/develop/<repo>/<subdir>/ and return setup info."""
         ...
 

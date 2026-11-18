@@ -26,7 +26,7 @@ contract aggregates, and renders JSON output to stdout.
 | Input | `sdc host setup --subdir <implement\|plan\|execute>` or `sdc host cleanup <paths...>` |
 | Output | JSON `{python, scratch_dir, run_id}` for setup; exit 0 for cleanup |
 | Protocol | `IHostAggregate` |
-| Method | `HostHelper.execute(HostRequest) → HostResult` |
+| Method | `HostAgent.dispatch(HostRequest) → HostResult` |
 | Event | none |
 | Error | `HostError` if not a git repo or unknown subdir |
 
@@ -56,15 +56,15 @@ contract aggregates, and renders JSON output to stdout.
 
 ### Protocol API
 
-- `IHostAggregate.execute(HostRequest) → HostResult`
+- `IHostAggregate.dispatch(HostRequest) → HostResult`
 - `IMemoryAggregate.execute(MemoryRequest) → MemoryResult`
 - `IPlanAggregate.execute(PlanRequest) → PlanResult`
 
 ### Aggregate API
 
-- `HostHelper` implements `IHostAggregate`
-- `MemoryStore` implements `IMemoryAggregate`
-- `PlanValidator` implements `IPlanAggregate`
+- `HostAgent` implements `IHostAggregate`
+- `AgentMemory` implements `IMemoryAggregate`
+- `AgentPlanner` implements `IPlanAggregate`
 
 ## Reference
 

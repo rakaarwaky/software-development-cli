@@ -27,7 +27,7 @@ The feature shall extract all PR entries from the `## PR Plan` section of a desi
 - The feature shall return all parsed entries and any parse errors collected from dependency format mismatches.
 
 #### Edge Cases
-- If no `## PR Plan` section exists, the feature shall return a parse error with exit code `4` (`PlanValidationError`).
+- If no `## PR Plan` section exists, the feature shall return a parse error with exit code `4` (`PlanParseError`).
 - If the section exists but contains no PR entries, the feature shall return a parse error.
 - If a dependency string uses an unrecognized format (expected `PR <id>`), the feature shall record that as a parse error but continue parsing other entries.
 - If the design document file does not exist, the feature shall return `PlanUsageError` with exit code `2`.
@@ -41,7 +41,7 @@ The feature shall extract all PR entries from the `## PR Plan` section of a desi
 | **Protocol** | `IPlanParseProtocol` |
 | **Method** | `parse_plan(plan_text)` |
 | **Event** | none |
-| **Error** | `PlanValidationError` when no PR Plan section or no PR entries found |
+| **Error** | `PlanParseError` when no PR Plan section or no PR entries found |
 
 #### Test
 | Context | When Action | Then Observable Result |

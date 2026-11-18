@@ -7,10 +7,15 @@ result, and the surface renders JSON to stdout.
 
 Exit-code contract (primary agent-readable state signal):
   0  success
-  1  classified runtime failure (host: not a git repo; memory: I/O error)
-  2  usage error (unknown subcommand, missing required arg)
-  3  memory lock timeout
-  4  memory spec error (malformed JSON on stdin)
+  1  classified runtime failure (host: not a git repo; memory: I/O error;
+     planner: unwired capability ``PlanNotWiredError``; plan DAG invalid
+     ``PlanValidationError``)
+  2  usage error (unknown subcommand, missing required arg; plan file
+     unreadable ``PlanUsageError``; workspace id ``WorkspaceIdError``)
+  3  memory lock timeout (``LockTimeoutError``)
+  4  memory spec error (malformed JSON on stdin, ``SpecError``); plan
+     parse error — missing ``## PR Plan`` section or no entries
+     (``PlanParseError``)
 """
 
 from __future__ import annotations
@@ -23,6 +28,7 @@ from shared.src.common.taxonomy_sdc_error import (
     HostError,
     LockTimeoutError,
     MemoryHelperError,
+    PlanNotWiredError,
     PlanParseError,
     PlanUsageError,
     PlanValidationError,
@@ -43,20 +49,20 @@ def _build_parser() -> argparse.ArgumentParser:
 
     # sdc host <setup|cleanup>
     host = sub.add_parser("host", help="Host helpers (artifact root setup/cleanup).")
-    host_sub = host.add_subparsers(dest="host_cmd", required=True)
+    host_sub = host.add_subparsers(dest="host_cmd", required=True, metavar="<command>")
     host_setup = host_sub.add_parser("setup", help="Create artifact root; print JSON {python, scratch_dir, run_id}.")
     host_setup.add_argument(
         "--subdir",
         required=True,
-        choices=["implement", "plan", "execute"],
-        help="Per-skill artifact subdir under ~/.agents/develop/<reponame>/.",
+        choices=["implement", "plan", "execute", "design", "execute-plan"],
+        help="Per-skill artifact subdir under ~/.agents/develop/<reponame>/ (skill-name aliases accepted).",
     )
     host_cleanup = host_sub.add_parser("cleanup", help="Unlink files; missing paths are ok.")
     host_cleanup.add_argument("paths", nargs="+", help="Files to unlink.")
 
     # sdc memory <path|read|snapshot|update>
     mem = sub.add_parser("memory", help="Workspace-scoped memory file manager.")
-    mem_sub = mem.add_subparsers(dest="memory_cmd", required=True)
+    mem_sub = mem.add_subparsers(dest="memory_cmd", required=True, metavar="<command>")
     mem_sub.add_parser("path", help="Print the memory file path for this workspace.")
     mem_sub.add_parser("read", help="Print the memory file contents (empty if missing).")
     mem_sub.add_parser("snapshot", help="Print the parsed memory file as JSON.")
@@ -79,9 +85,27 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# ─── Skill-name aliases ────────────────────────────────────────────────
+
+_SUBDIR_ALIASES: dict[str, str] = {
+    "design": "plan",
+    "execute-plan": "execute",
+}
+
+
+def _normalize_subdir(subdir: str) -> str:
+    """Map a skill-name alias to its canonical per-skill artifact subdir.
+
+    ``design`` → ``plan``, ``execute-plan`` → ``execute``;
+    any other value (already canonical) is returned unchanged.
+    """
+    return _SUBDIR_ALIASES.get(subdir, subdir)
+
+
 def _dispatch_host(args: argparse.Namespace) -> int:
     if args.host_cmd == "setup":
-        request = HostRequest(action="setup", subdir=args.subdir)
+        subdir = _normalize_subdir(args.subdir)
+        request = HostRequest(action="setup", subdir=subdir)
         result = _call_host(request)
         json.dump(
             {
@@ -90,7 +114,7 @@ def _dispatch_host(args: argparse.Namespace) -> int:
                 "run_id": result.run_id,
             },
             sys.stdout,
-            separators=(",", ":"),
+            indent=2,
         )
         sys.stdout.write("\n")
         return 0
@@ -165,6 +189,7 @@ def _dispatch_validate_plan(args: argparse.Namespace) -> int:
 
 def _read_update_spec(args: argparse.Namespace) -> dict:
     """Read the update JSON spec from ``--file`` or stdin."""
+    source = args.file if args.file else "stdin"
     if args.file:
         from pathlib import Path
 
@@ -172,11 +197,11 @@ def _read_update_spec(args: argparse.Namespace) -> dict:
     else:
         raw = sys.stdin.read()
     if not raw.strip():
-        raise SpecError("update requires JSON spec on stdin or --file")
+        raise SpecError(f"update requires JSON spec on {source}")
     try:
         spec = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise SpecError(f"invalid JSON on stdin: {exc}")
+        raise SpecError(f"invalid JSON in {source}: {exc}")
     if not isinstance(spec, dict):
         raise SpecError("update spec must be a JSON object")
     return spec
@@ -224,9 +249,9 @@ def _call_memory(request: MemoryRequest) -> MemoryResult:
 
 def _call_planner(request: PlanRequest) -> PlanResult:
     if _PLANNER_CAPABILITY is None:
-        exc = PlanUsageError("planner capability not wired; call set_capabilities first")
-        exc.exit_code = 1  # unwired capability is a runtime failure, not a usage error
-        raise exc
+        raise PlanNotWiredError(
+            "planner capability not wired; call set_capabilities first"
+        )
     return _PLANNER_CAPABILITY.execute(request)
 
 
@@ -247,7 +272,7 @@ def cmd_sdc(argv: list[str]) -> int:
         if args.subcommand == "validate-plan":
             return _dispatch_validate_plan(args)
         return 2
-    except (HostError, WorkspaceIdError, MemoryHelperError, PlanUsageError) as exc:
+    except (HostError, WorkspaceIdError, MemoryHelperError, PlanUsageError, PlanNotWiredError) as exc:
         print(f"sdc: {exc}", file=sys.stderr)
         return exc.exit_code
     except LockTimeoutError as exc:

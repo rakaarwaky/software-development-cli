@@ -11,7 +11,6 @@ from pathlib import Path
 from shared.src.common.taxonomy_sdc_error import (
     PlanParseError,
     PlanUsageError,
-    PlanValidationError,
 )
 from shared.src.planner.contract_planner_aggregate import IPlanAggregate
 from shared.src.planner.contract_planner_protocol import (
@@ -76,7 +75,11 @@ class AgentPlanner(IPlanAggregate):
             PrEntryList(entries=parse_result.entries)
         )
         if not validate_result.ok:
-            raise PlanValidationError("\n".join(validate_result.errors))
+            return PlanResult(
+                valid=False,
+                pr_count=len(parse_result.entries),
+                errors=list(validate_result.errors),
+            )
 
         # Step 3: Compute execution plan
         compute_result = self._computer.compute_levels(

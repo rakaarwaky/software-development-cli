@@ -47,7 +47,8 @@ def main(argv: list[str] | None = None) -> int:
     args = argv if argv is not None else sys.argv[1:]
     if not args:
         print(
-            "Usage: sdc <host|memory|validate-plan> [flags]",
+            "Usage: sdc <host|memory|validate-plan> [flags]\n"
+            "Run 'sdc --help' for details on available commands.",
             file=sys.stderr,
         )
         return 2

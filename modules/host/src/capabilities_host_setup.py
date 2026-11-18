@@ -7,6 +7,7 @@ Implements IHostSetupProtocol: creates the per-repo artifact root under
 from __future__ import annotations
 
 from shared.src.common.taxonomy_sdc_constant import VALID_SKILL_SUBDIRS
+from shared.src.common.taxonomy_sdc_error import HostError
 from shared.src.common.taxonomy_sdc_vo import SkillSubdir
 from shared.src.host.contract_host_protocol import IHostSetupProtocol
 from shared.src.host.taxonomy_host_request import HostResult
@@ -25,7 +26,7 @@ class CapabilitiesHostSetup(IHostSetupProtocol):
 
     def setup(self, subdir: SkillSubdir) -> HostResult:
         if subdir not in VALID_SKILL_SUBDIRS:
-            raise ValueError(f"host: unknown subdir {subdir!r}")
+            raise HostError(f"host: unknown subdir {subdir!r}")
         validated = resolve_subdir(subdir)
         return make_setup_result(validated)
 

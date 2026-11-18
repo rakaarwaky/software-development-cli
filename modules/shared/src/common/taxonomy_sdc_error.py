@@ -61,3 +61,13 @@ class PlanUsageError(SdcError):
     """Raised when validate-plan receives a bad argv or unreadable file."""
 
     exit_code = 2
+
+
+class PlanNotWiredError(SdcError):
+    """Raised when the planner capability has not been wired into the surface.
+
+    This is a runtime failure (exit code 1), not a usage error, so it uses
+    its own exit code rather than mutating a ``PlanUsageError`` instance.
+    """
+
+    exit_code = 1

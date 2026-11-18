@@ -8,9 +8,9 @@ The `sdc` surface is implemented: stdlib-only argument parsing with host, memory
 
 | ID | Status | Description | Priority |
 |----|--------|-------------|----------|
-| BL-CLI-001 | Done | `sdc host setup --subdir implement/design/execute-plan` | P0 |
+| BL-CLI-001 | Done | `sdc host setup --subdir implement\|plan\|execute` (skill-name aliases `design`, `execute-plan` accepted) | P0 |
 | BL-CLI-002 | Done | `sdc host cleanup <paths...>` (positional, missing paths skipped) | P0 |
-| BL-CLI-003 | Done | `sdc memory path|read|snapshot|update` (subdir omitted = host root) | P0 |
+| BL-CLI-003 | Done | `sdc memory path\|read\|snapshot\|update` | P0 |
 | BL-CLI-004 | Done | `sdc validate-plan <plan-file>` | P1 |
 | BL-CLI-005 | Done | Exit codes 0/1/2/3/4 with stderr messages | P0 |
 | BL-CLI-006 | Done | Capabilities injected via `set_capabilities` from the root entry | P0 |
@@ -59,8 +59,8 @@ The `sdc` surface is implemented: stdlib-only argument parsing with host, memory
 
 | Artifact     | Purpose                                    | Link |
 |--------------|--------------------------------------------|------|
-| DESIGN       | Surface layer design contract              | [DESIGN.md](DESIGN.md) |
 | ARCHITECTURE | System boundaries, tech stack, and infra   | [ARCHITECTURE.md](../../ARCHITECTURE.md) |
+| DESIGN       | Surface layer design contract              | [DESIGN.md](FRD.md) |
 | FRD          | Functional requirements specification      | [FRD.md](FRD.md) |
 | PRD          | Business goals, user stories, and scope    | [PRD.md](../../PRD.md) |
 | Roadmap      | Timeline, phasing, and dependencies        | [ROADMAP.md](../../ROADMAP.md) |

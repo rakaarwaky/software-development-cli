@@ -338,3 +338,108 @@ def test_unexpected_error_prints_traceback_exits_one():
     assert "TypeError" in err.getvalue()
     assert "boom" in err.getvalue()
     assert "Traceback" in err.getvalue()
+    assert "Traceback" in err.getvalue()
+
+
+# ── new behavior contracts ──────────────────────────────────────────────
+
+def test_invalid_dag_report_goes_to_stdout_full_schema():
+    """Invalid DAG → full 7-field JSON report on stdout, exit code 1."""
+    from shared.src.common.taxonomy_sdc_error import PlanNotWiredError
+
+    cap = MagicMock()
+    cap.execute.return_value = PlanResult(
+        valid=False,
+        pr_count=2,
+        levels=2,
+        max_parallelism=1,
+        linearized_order=["pr-1", "pr-2"],
+        level_assignments={"pr-1": 0, "pr-2": 1},
+        errors=["Cycle detected: pr-1 -> pr-2 -> pr-1"],
+    )
+    _wire(cap_planner=cap)
+    out = StringIO()
+    err = StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = out, err
+    try:
+        code = cmd_sdc(["validate-plan", "design.md"])
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+    assert code == 1
+    assert err.getvalue() == ""
+    data = json.loads(out.getvalue())
+    assert data["valid"] is False
+    assert data["pr_count"] == 2
+    assert data["levels"] == 2
+    assert data["max_parallelism"] == 1
+    assert data["errors"] == ["Cycle detected: pr-1 -> pr-2 -> pr-1"]
+
+
+def test_bad_json_via_file_names_the_file_in_error():
+    """--file with invalid JSON → 'invalid JSON in <file>', not 'on stdin'."""
+    import tempfile, os
+
+    bad_file = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+    bad_file.write("{not valid json}")
+    bad_file.close()
+    try:
+        out = StringIO()
+        err = StringIO()
+        old_out, old_err = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = out, err
+        try:
+            code = cmd_sdc(["memory", "update", "--file", bad_file.name])
+        finally:
+            sys.stdout, sys.stderr = old_out, old_err
+        assert code == 4
+        assert f"invalid JSON in {bad_file.name}" in err.getvalue()
+        assert "stdin" not in err.getvalue()
+    finally:
+        os.unlink(bad_file.name)
+
+
+def test_host_setup_accepts_skill_name_aliases():
+    """--subdir design → plan, --subdir execute-plan → execute."""
+    cap = MagicMock()
+    cap.dispatch.return_value = HostResult(
+        python="/usr/bin/python3",
+        scratch_dir="/tmp/scratch",
+        run_id="abc12345",
+    )
+    _wire(cap_host=cap)
+    for alias, canonical in [("design", "plan"), ("execute-plan", "execute")]:
+        out = StringIO()
+        err = StringIO()
+        old_out, old_err = sys.stdout, sys.stderr
+        sys.stdout, sys.stderr = out, err
+        try:
+            code = cmd_sdc(["host", "setup", "--subdir", alias])
+        finally:
+            sys.stdout, sys.stderr = old_out, old_err
+        assert code == 0, alias
+        args, _ = cap.dispatch.call_args
+        assert args[0].subdir == canonical, alias
+
+
+def test_host_setup_json_is_indented():
+    """host setup output uses indented JSON (indent=2), matching other subcommands."""
+    cap = MagicMock()
+    cap.dispatch.return_value = HostResult(
+        python="/usr/bin/python3",
+        scratch_dir="/tmp/scratch",
+        run_id="abc12345",
+    )
+    _wire(cap_host=cap)
+    out = StringIO()
+    old_out = sys.stdout
+    sys.stdout = out
+    try:
+        code = cmd_sdc(["host", "setup", "--subdir", "implement"])
+    finally:
+        sys.stdout = old_out
+    assert code == 0
+    data = json.loads(out.getvalue())
+    assert data == {"python": "/usr/bin/python3", "scratch_dir": "/tmp/scratch", "run_id": "abc12345"}
+    # indent=2 produces multi-line output
+    assert out.getvalue().count("\n") >= 2

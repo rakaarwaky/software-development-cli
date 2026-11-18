@@ -10,19 +10,21 @@ One file for the memory feature declaring 4 rich capability seams:
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Any
 
-from shared.src.common.taxonomy_sdc_vo import MemoryContent
-from shared.src.memory.taxonomy_memory_request import MemoryResult
+from shared.src.common.taxonomy_sdc_vo import MemoryContent, RepoPaths
+from shared.src.memory.taxonomy_memory_request import (
+    MemoryResult,
+    MemorySnapshot,
+    UpdateSpec,
+)
 
 
 class IMemoryPathProtocol(ABC):
     """Path resolution capability seam for the memory file."""
 
     @abstractmethod
-    def resolve_paths(self, *, create_dir: bool = False) -> dict[str, Path]:
-        """Return {"dir", "file", "lock"} for the active repository."""
+    def resolve_paths(self, *, create_dir: bool = False) -> RepoPaths:
+        """Return the ``dir``/``file``/``lock``/``workspace_id`` paths for the active repository."""
         ...
 
 
@@ -39,8 +41,8 @@ class IMemorySnapshotProtocol(ABC):
     """Structured parsing capability seam for the memory file."""
 
     @abstractmethod
-    def read_snapshot(self) -> dict[str, Any]:
-        """Parse and return {"common_issues": [...], "recent_runs": [...], "exists": bool}."""
+    def read_snapshot(self) -> MemorySnapshot:
+        """Parse and return ``{"common_issues": [...], "recent_runs": [...], "exists": bool}``."""
         ...
 
 
@@ -48,7 +50,7 @@ class IMemoryWriterProtocol(ABC):
     """Exclusive-lock update capability seam for the memory file."""
 
     @abstractmethod
-    def update(self, spec: dict[str, Any]) -> MemoryResult:
+    def update(self, spec: UpdateSpec) -> MemoryResult:
         """Merge a run spec into the memory file under exclusive lock; return stats."""
         ...
 

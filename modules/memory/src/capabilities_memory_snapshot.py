@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from shared.src.common.taxonomy_sdc_vo import WorkspaceId
 from shared.src.memory.contract_memory_protocol import IMemorySnapshotProtocol
+from shared.src.memory.taxonomy_memory_request import MemorySnapshot
 from shared.src.memory.utility_memory_helper import (
     build_snapshot_payload,
     get_workspace_id,
@@ -32,7 +33,7 @@ class CapabilitiesSnapshot(IMemorySnapshotProtocol):
 
     # ─── Block 2: Module Contract ──────────────────────────────────────
 
-    def read_snapshot(self) -> dict[str, object]:
+    def read_snapshot(self) -> MemorySnapshot:
         _ = WorkspaceId(get_workspace_id())
         f = memory_paths()["file"]
         try:
@@ -43,7 +44,11 @@ class CapabilitiesSnapshot(IMemorySnapshotProtocol):
                 _EMPTY_STATE,
                 exists=False,
             )
-        return payload
+        return MemorySnapshot(
+            common_issues=list(payload["common_issues"]),
+            recent_runs=list(payload["recent_runs"]),
+            exists=bool(payload["exists"]),
+        )
 
     # ─── Block 3: Module Helpers ───────────────────────────────────────
 

@@ -20,6 +20,22 @@ class MemoryRequest:
 
 
 @dataclass(frozen=True)
+class UpdateSpec:
+    """A parsed JSON memory-update spec (patterns + optional run)."""
+
+    data: dict = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class MemorySnapshot:
+    """A parsed memory-file snapshot: common issues, recent runs, existence flag."""
+
+    common_issues: list = field(default_factory=list)
+    recent_runs: list = field(default_factory=list)
+    exists: bool = False
+
+
+@dataclass(frozen=True)
 class MemoryResult:
     """Result returned by the memory capability.
 

@@ -14,7 +14,12 @@ from shared.src.memory.contract_memory_protocol import (
     IMemorySnapshotProtocol,
     IMemoryWriterProtocol,
 )
-from shared.src.memory.taxonomy_memory_request import MemoryRequest, MemoryResult
+from shared.src.memory.taxonomy_memory_request import (
+    MemoryRequest,
+    MemoryResult,
+    MemorySnapshot,
+    UpdateSpec,
+)
 
 # ─── Block 1: Module Declaration ───────────────────────────────────────
 
@@ -42,17 +47,32 @@ class AgentMemory(IMemoryAggregate):
 
     def execute(self, request: MemoryRequest) -> MemoryResult:
         if request.action == "path":
-            return MemoryResult(path=str(self._path.resolve_paths()["file"]))
+            paths = self._path.resolve_paths()
+            return MemoryResult(path=str(paths.file))
         if request.action == "read":
-            return MemoryResult(content=self._reader.read_content())
+            return MemoryResult(content=str(self._reader.read_content()))
         if request.action == "snapshot":
-            return MemoryResult(snapshot=self._snapshot.read_snapshot())
+            return MemoryResult(snapshot=self._snapshot_payload())
         if request.action == "update":
-            return self._writer.update(request.spec)
+            return self._writer.update(self._as_update_spec(request.spec))
         raise SpecError(
             f"memory: unknown action {request.action!r}; "
             "expected 'path', 'read', 'snapshot', or 'update'"
         )
+
+    def _snapshot_payload(self) -> dict:
+        """Return the snapshot as a plain dict for JSON rendering."""
+        snapshot = self._snapshot.read_snapshot()
+        return _snapshot_to_dict(snapshot)
+
+    @staticmethod
+    def _as_update_spec(spec: object) -> UpdateSpec:
+        """Coerce a raw dict into an ``UpdateSpec``."""
+        if isinstance(spec, UpdateSpec):
+            return spec
+        if isinstance(spec, dict):
+            return UpdateSpec(data=spec)
+        raise SpecError("update spec must be an UpdateSpec or a dict")
 
     # ─── Block 3: Module Helpers ───────────────────────────────────────
 
@@ -73,3 +93,16 @@ class AgentMemory(IMemoryAggregate):
 
     def __repr__(self) -> str:
         return "AgentMemory()"
+
+
+def _snapshot_to_dict(snapshot: object) -> dict:
+    """Coerce a ``MemorySnapshot`` VO into a plain dict for JSON rendering."""
+    if isinstance(snapshot, dict):
+        return snapshot
+    if isinstance(snapshot, MemorySnapshot):
+        return {
+            "common_issues": list(snapshot.common_issues),
+            "recent_runs": list(snapshot.recent_runs),
+            "exists": snapshot.exists,
+        }
+    raise SpecError("snapshot must be a MemorySnapshot or a dict")

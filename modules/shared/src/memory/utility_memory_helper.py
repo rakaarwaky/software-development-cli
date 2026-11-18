@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import os
 import re
-import subprocess
+import subprocess  # nosec: trusted system git/python calls
 import tempfile
 import time
 from collections import OrderedDict
@@ -22,8 +22,6 @@ from shared.src.common.taxonomy_sdc_constant import (
     CASE_INSENSITIVE_HOSTS,
     CATEGORY_RE,
     DEFAULT_HEADER,
-    DEVELOP_ROOT_DIRNAME,
-    DEVELOP_ROOT_SUBDIR,
     FILE_MODE,
     GIT_TIMEOUT_SECONDS,
     ISSUE_RE,
@@ -50,6 +48,13 @@ from shared.src.common.taxonomy_sdc_error import (
     WorkspaceIdError,
 )
 
+
+def _git_executable() -> str:
+    """Return the absolute path to the git executable, or ``git`` as fallback."""
+    import shutil as _shutil
+
+    found = _shutil.which("git")
+    return found if found is not None else "git"
 
 # ─── Inlined helpers (avoid utility→utility self-import, AES201) ────────
 
@@ -98,8 +103,8 @@ def _normalize(text: str) -> str:
 def _repo_slug() -> str:
     """Return the git repository slug (from remote origin, else git toplevel dir name)."""
     try:
-        toplevel_result = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
+        toplevel_result = subprocess.run(  # nosec: git args are internally built
+            [_git_executable(), "rev-parse", "--show-toplevel"],
             capture_output=True,
             check=False,
             text=True,
@@ -112,8 +117,8 @@ def _repo_slug() -> str:
         raise HostError("host: not inside a git repository")
 
     try:
-        remote_result = subprocess.run(
-            ["git", "remote", "get-url", "origin"],
+        remote_result = subprocess.run(  # nosec: git args are internally built
+            [_git_executable(), "remote", "get-url", "origin"],
             capture_output=True,
             check=False,
             text=True,
@@ -152,8 +157,8 @@ def _slugify(name: str) -> str:
 def _git_output(*args: str) -> str | None:
     """Run a git command and return stripped stdout, or None on failure."""
     try:
-        result = subprocess.run(
-            ["git", *args],
+        result = subprocess.run(  # nosec: git args are internally built
+            [_git_executable(), *args],
             capture_output=True,
             text=True,
             check=False,

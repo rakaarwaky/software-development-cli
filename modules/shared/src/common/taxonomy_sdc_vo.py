@@ -52,6 +52,21 @@ MemoryContent = NewType("MemoryContent", str)
 
 
 @dataclass(frozen=True)
+class RepoPaths:
+    """Resolved filesystem paths for one repository's memory artifacts.
+
+    ``dir`` is the memory directory, ``file`` the memory markdown file,
+    ``lock`` the advisory-lock sibling, and ``workspace_id`` the derived
+    workspace identifier.
+    """
+
+    dir: object
+    file: object
+    lock: object
+    workspace_id: WorkspaceId
+
+
+@dataclass(frozen=True)
 class Pattern:
     """One recorded review pattern with its dedup count."""
 

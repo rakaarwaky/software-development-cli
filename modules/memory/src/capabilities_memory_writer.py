@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from shared.src.common.taxonomy_sdc_error import SpecError
 from shared.src.memory.contract_memory_protocol import IMemoryWriterProtocol
-from shared.src.memory.taxonomy_memory_request import MemoryResult
+from shared.src.memory.taxonomy_memory_request import MemoryResult, UpdateSpec
 from shared.src.memory.utility_memory_helper import (
     acquire_lock,
     atomic_write,
@@ -30,10 +30,8 @@ class CapabilitiesWriter(IMemoryWriterProtocol):
 
     # ─── Block 2: Module Contract ──────────────────────────────────────
 
-    def update(self, spec: dict) -> MemoryResult:
-        if not isinstance(spec, dict):
-            raise SpecError("update requires a non-empty spec dict")
-        if not spec:
+    def update(self, spec: UpdateSpec) -> MemoryResult:
+        if not isinstance(spec, UpdateSpec) or not spec.data:
             raise SpecError("update requires a non-empty spec dict")
 
         paths = memory_paths(create_dir=True)
@@ -45,7 +43,7 @@ class CapabilitiesWriter(IMemoryWriterProtocol):
             existed_before = file_path.exists()
             existing = file_path.read_text(encoding="utf-8") if existed_before else ""
             state = parse_memory_file(existing)
-            stats = merge_run(state, spec)
+            stats = merge_run(state, spec.data)
             new_content = render_memory_file(state)
             atomic_write(file_path, new_content)
 

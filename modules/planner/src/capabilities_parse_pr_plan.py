@@ -32,7 +32,7 @@ class CapabilitiesParsePrPlan(IPlanParseProtocol):
         """
         text = plan_text.text
         stripped = _strip_fenced_code_blocks(text)
-        heading = re.search(r"^## PR Plan\s*$", stripped, re.MULTILINE)
+        heading = re.search(r"^## PR Plan[ \t]*$", stripped, re.MULTILINE | re.IGNORECASE)
         if heading is None:
             return ParseResult(
                 ok=False,
@@ -41,7 +41,7 @@ class CapabilitiesParsePrPlan(IPlanParseProtocol):
 
         start = heading.end()
         next_section = re.search(
-            r"^## (?!PR Plan\s*$)", stripped[start:], re.MULTILINE
+            r"^## (?!PR Plan[ \t]*$)", stripped[start:], re.MULTILINE | re.IGNORECASE
         )
         section = (
             stripped[start : start + next_section.start()]
@@ -49,7 +49,7 @@ class CapabilitiesParsePrPlan(IPlanParseProtocol):
             else stripped[start:]
         )
 
-        pr_re = re.compile(r"^###\s+PR\s+(\S+?):\s*(.+)$", re.MULTILINE)
+        pr_re = re.compile(r"^###[ \t]+PR[ \t]+(\S+?):[ \t]*(.*)$", re.MULTILINE)
         matches = list(pr_re.finditer(section))
 
         if not matches:
@@ -63,6 +63,9 @@ class CapabilitiesParsePrPlan(IPlanParseProtocol):
         for i, m in enumerate(matches):
             pr_num = m.group(1)
             title = m.group(2).strip()
+            if not title:
+                parse_errors.append(f"PR {pr_num} heading is missing a title")
+                continue
 
             body_start = m.end()
             body_end = (
@@ -94,11 +97,7 @@ class CapabilitiesParsePrPlan(IPlanParseProtocol):
             )
 
         if parse_errors:
-            return ParseResult(
-                ok=True,
-                entries=entries,
-                errors=parse_errors,
-            )
+            return ParseResult(ok=False, entries=[], errors=parse_errors)
         return ParseResult(ok=True, entries=entries)
 
     # ─── Block 3: Module Helpers ───────────────────────────────────────
@@ -110,20 +109,28 @@ class CapabilitiesParsePrPlan(IPlanParseProtocol):
 def _strip_fenced_code_blocks(content: str) -> str:
     """Remove fenced code blocks so headings inside examples are ignored."""
     flags = re.MULTILINE | re.DOTALL
-    content = re.sub(r"^\s*```[^\n]*\n.*?^\s*```\s*$", "", content, flags=flags)
-    return re.sub(r"^\s*~~~\n.*?^\s*~~~\s*$", "", content, flags=flags)
+    content = re.sub(r"^[ \t]*```[^\n]*\n.*?^[ \t]*```[ \t]*$", "", content, flags=flags)
+    return re.sub(r"^[ \t]*~~~[^\n]*\n.*?^[ \t]*~~~[ \t]*$", "", content, flags=flags)
+
+
+def _slugify_title(title: str) -> str:
+    """Return a conservative branch-name slug for a PR title."""
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", title.lower()).strip("-")
+    slug = re.sub(r"-{2,}", "-", slug)[:50].rstrip("-")
+    slug = slug.removesuffix(".lock")
+    return slug or "unnamed"
 
 
 def _extract_field(body: str, field_name: str) -> str | None:
     """Return the value of a ``- **FieldName:** value`` bullet, or None."""
     escaped = re.escape(field_name)
     pattern = re.compile(
-        rf"^\s*[-*]\s+\**{escaped}:?\**:?\s*(.+(?:\n[ \t]+\S.*)*)",
+        rf"^[ \t]*[-*][ \t]+\**{escaped}:?[ \t]*\**:?[ \t]*(.*)$",
         re.MULTILINE | re.IGNORECASE,
     )
     m = pattern.search(body)
     if m:
-        return re.sub(r"\s*\n[ \t]+", " ", m.group(1)).strip()
+        return re.sub(r"[ \t]*\n[ \t]+", " ", m.group(1)).strip()
     return None
 
 
@@ -143,7 +150,7 @@ def _parse_dependencies(
     for part in parts:
         if not part:
             continue
-        m = re.match(r"PR\s+(\S+)", part, re.IGNORECASE)
+        m = re.fullmatch(r"PR[ \t]+([A-Za-z0-9]+)[ \t]*[.,;]?", part, re.IGNORECASE)
         if m:
             deps.append(f"pr-{m.group(1).lower()}")
         else:

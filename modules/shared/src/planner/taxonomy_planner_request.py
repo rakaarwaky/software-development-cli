@@ -37,6 +37,7 @@ class PlanResult:
     max_parallelism: int = 0
     linearized_order: list[str] = field(default_factory=list)
     level_assignments: dict[str, int] = field(default_factory=dict)
+    nodes: list[dict[str, object]] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
 

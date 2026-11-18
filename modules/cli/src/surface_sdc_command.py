@@ -178,13 +178,14 @@ def _dispatch_validate_plan(args: argparse.Namespace) -> int:
             "max_parallelism": result.max_parallelism,
             "linearized_order": result.linearized_order,
             "level_assignments": result.level_assignments,
+            "nodes": result.nodes,
             "errors": result.errors,
         },
         sys.stdout,
         indent=2,
     )
     sys.stdout.write("\n")
-    return 0 if result.valid else 1
+    return 0 if result.valid and not result.errors else 1
 
 
 def _read_update_spec(args: argparse.Namespace) -> dict:
@@ -292,3 +293,7 @@ def cmd_sdc(argv: list[str]) -> int:
         return getattr(exc, "exit_code", 1)
     except KeyboardInterrupt:
         raise
+    except Exception as exc:  # pragma: no cover — defensive catch-all
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        return 1

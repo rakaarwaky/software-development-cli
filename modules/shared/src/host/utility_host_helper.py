@@ -175,14 +175,31 @@ def make_setup_result(subdir: str) -> HostResult:
 
 
 def make_cleanup_result(paths: list[str]) -> HostResult:
-    """Unlink each path; missing paths are skipped silently.
+    """Unlink paths only under the managed ``~/.agents/develop`` root.
 
-    Returns a ``HostResult`` with ``failed_count`` set.
+    Missing paths are skipped silently. Paths outside the managed root are
+    rejected so a bad caller cannot delete arbitrary user files.
     """
     failed = 0
+    root = develop_root().resolve()
     for raw in paths:
         try:
-            Path(raw).unlink()
+            path = Path(raw).expanduser().resolve()
+            path.relative_to(root)
+        except ValueError:
+            print(
+                f"host: refusing to remove path outside {root}: {raw}",
+                file=sys.stderr,
+            )
+            failed += 1
+            continue
+        except OSError as exc:
+            print(f"host: could not resolve {raw}: {exc}", file=sys.stderr)
+            failed += 1
+            continue
+
+        try:
+            path.unlink()
         except FileNotFoundError:
             pass
         except OSError as exc:

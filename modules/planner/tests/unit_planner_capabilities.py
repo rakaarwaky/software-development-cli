@@ -10,14 +10,15 @@ from pathlib import Path
 
 # ─── Bootstrap sys.path (mirrors modules/root_sdc_entry.py) ─────────────
 _MODULES_ROOT = Path(__file__).resolve().parents[3]
-for _m in ("shared", "cli", "planner", "memory"):
-    _src = _MODULES_ROOT / _m / "src"
+for _m in ("shared", "cli", "planner", "memory", "host"):
+    _src = _MODULES_ROOT / "modules" / _m / "src"
     if _src.is_dir():
         _p = str(_src)
         if _p not in sys.path:
             sys.path.insert(0, _p)
-if str(_MODULES_ROOT) not in sys.path:
-    sys.path.insert(0, str(_MODULES_ROOT))
+# Also add the modules/ root itself so `from modules.shared...` works
+if str(_MODULES_ROOT / "modules") not in sys.path:
+    sys.path.insert(0, str(_MODULES_ROOT / "modules"))
 
 from shared.src.common.utility_sdc_common import bootstrap_ns_roots
 
@@ -169,11 +170,8 @@ class TestParseBadDependencyFormat:
 """
         result = parser.parse_plan(PrEntryList(text=doc))
 
-        assert result.ok is True
-        assert len(result.entries) == 2
-        ids = [e.id for e in result.entries]
-        assert ids == ["pr-1", "pr-2"]
-        # The bad dependency is recorded as an error but does not block parsing
+        assert result.ok is False
+        assert result.entries == []
         assert any("Unrecognized dependency format" in e for e in result.errors)
         assert any("bad-format" in e for e in result.errors)
 
@@ -181,7 +179,7 @@ class TestParseBadDependencyFormat:
 class TestParseFencedCodeBlocks:
     """Fenced code blocks (``` / ~~~) are stripped so headings inside are ignored."""
 
-    def test_heading_inside_fenced_block_ignored(self, parser):
+    def test_heading_inside_backtick_fenced_block_ignored(self, parser):
         doc = """## PR Plan
 
 ### PR 1: Real Entry
@@ -204,6 +202,90 @@ class TestParseFencedCodeBlocks:
         assert len(result.entries) == 2
         ids = [e.id for e in result.entries]
         assert ids == ["pr-1", "pr-3"]
+
+    def test_heading_inside_tilde_fenced_block_with_info_string_ignored(self, parser):
+        doc = """## PR Plan
+
+### PR 1: Real Entry
+- Dependencies: none
+- Description: Real
+
+~~~markdown
+### PR 99: Fake Entry
+- Dependencies: none
+- Description: Fake
+~~~
+
+### PR 2: Another Real Entry
+- Dependencies: PR 1
+- Description: Real
+"""
+        result = parser.parse_plan(PrEntryList(text=doc))
+
+        assert result.ok is True
+        assert [e.id for e in result.entries] == ["pr-1", "pr-2"]
+
+
+class TestParseRejectsMalformedHeadingsAndDependencies:
+    def test_no_title_is_parse_error(self, parser):
+        doc = """## PR Plan
+
+### PR 1:
+- Files/components affected: src/a.py
+- Dependencies: none
+- Description: Missing title
+"""
+        result = parser.parse_plan(PrEntryList(text=doc))
+
+        assert result.ok is False
+        assert any("missing a title" in e for e in result.errors)
+
+    def test_dependencies_require_full_match(self, parser):
+        doc = """## PR Plan
+
+### PR 1: First
+- Files/components affected: src/a.py
+- Dependencies: none
+- Description: First
+
+### PR 2: Second
+- Files/components affected: src/b.py
+- Dependencies: PR 1 and PR 3
+- Description: Second
+"""
+        result = parser.parse_plan(PrEntryList(text=doc))
+
+        assert result.ok is False
+        assert any("Unrecognized dependency format" in e for e in result.errors)
+
+    def test_empty_dependency_does_not_absorb_next_bullet(self, parser):
+        doc = """## PR Plan
+
+### PR 1: First
+- Files/components affected: src/a.py
+- Dependencies:
+- Description: Should remain separate
+"""
+        result = parser.parse_plan(PrEntryList(text=doc))
+
+        assert result.ok is True
+        assert result.entries[0].dependencies == []
+        assert result.entries[0].description == "Should remain separate"
+        assert result.errors == []
+
+    def test_indented_sibling_bullets_do_not_absorb_fields(self, parser):
+        doc = """## PR Plan
+
+### PR 1: First
+  - Files/components affected: src/a.py
+  - Dependencies: none
+  - Description: Separate bullets
+"""
+        result = parser.parse_plan(PrEntryList(text=doc))
+
+        assert result.ok is True
+        assert result.entries[0].dependencies == []
+        assert result.entries[0].description == "Separate bullets"
 
 
 # ─── Surface integration: PlanParseError reaches cmd_sdc with exit 4 ───

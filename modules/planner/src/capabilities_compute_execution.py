@@ -6,6 +6,7 @@ max parallelism, and linearizes for final branch merge order.
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict, deque
 
 from shared.src.common.taxonomy_sdc_vo import PrEntry
@@ -49,13 +50,15 @@ class CapabilitiesComputeExecution(IPlanComputeProtocol):
         return "CapabilitiesComputeExecution()"
 
 
-def _pr_sort_key(pr_id: str) -> tuple[int, int, str]:
-    """Sort key: numeric PR numbers first, then lexicographic."""
+def _pr_sort_key(pr_id: str) -> tuple[int, int, int, str]:
+    """Sort numeric PR ids numerically, then lettered ids after them."""
     suffix = pr_id.split("-", 1)[1] if "-" in pr_id else pr_id
-    try:
-        return (0, int(suffix), "")
-    except ValueError:
-        return (1, 0, suffix)
+    match = re.fullmatch(r"(\d+)([a-z]*)", suffix)
+    if match:
+        number = int(match.group(1))
+        letters = match.group(2)
+        return (0 if not letters else 1, number, len(letters), letters)
+    return (2, 0, 0, suffix)
 
 
 def _compute_levels_map(entries: list[PrEntry]) -> dict[str, int]:

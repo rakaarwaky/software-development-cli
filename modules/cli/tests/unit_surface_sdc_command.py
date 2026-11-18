@@ -16,14 +16,14 @@ from pathlib import Path
 
 # ─── Bootstrap sys.path (mirrors modules/root_sdc_entry.py) ─────────────
 _MODULES_ROOT = Path(__file__).resolve().parents[3]
-for _m in ("shared", "cli", "planner", "memory"):
-    _src = _MODULES_ROOT / _m / "src"
+for _m in ("shared", "cli", "planner", "memory", "host"):
+    _src = _MODULES_ROOT / "modules" / _m / "src"
     if _src.is_dir():
         _p = str(_src)
         if _p not in sys.path:
             sys.path.insert(0, _p)
-if str(_MODULES_ROOT) not in sys.path:
-    sys.path.insert(0, str(_MODULES_ROOT))
+if str(_MODULES_ROOT / "modules") not in sys.path:
+    sys.path.insert(0, str(_MODULES_ROOT / "modules"))
 
 from shared.src.common.utility_sdc_common import bootstrap_ns_roots
 

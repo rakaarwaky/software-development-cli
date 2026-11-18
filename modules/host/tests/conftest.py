@@ -9,7 +9,16 @@ from __future__ import annotations
 import os
 import stat
 import subprocess
+import sys
 from pathlib import Path
+
+_MODULES_ROOT = Path(__file__).resolve().parents[3]
+for _m in ("shared", "cli", "planner", "memory", "host"):
+    _src = _MODULES_ROOT / "modules" / _m / "src"
+    if _src.is_dir() and str(_src) not in sys.path:
+        sys.path.insert(0, str(_src))
+if str(_MODULES_ROOT / "modules") not in sys.path:
+    sys.path.insert(0, str(_MODULES_ROOT / "modules"))
 
 import pytest
 

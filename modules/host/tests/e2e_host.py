@@ -26,11 +26,17 @@ class TestHostE2E:
     """Full lifecycle: create artifact root then clean up files."""
 
     def test_setup_creates_root_then_cleanup_removes_files(
-        self, tmp_path: Path
+        self, tmp_path: Path, isolated_home, monkeypatch
     ) -> None:
         agent = _make_orchestrator()
-        file_a = tmp_path / "a.txt"
-        file_b = tmp_path / "b.txt"
+        monkeypatch.setattr(
+            "shared.src.host.utility_host_helper.develop_root",
+            lambda: tmp_path / ".agents" / "develop",
+        )
+        managed = tmp_path / ".agents" / "develop" / "unit"
+        managed.mkdir(parents=True)
+        file_a = managed / "a.txt"
+        file_b = managed / "b.txt"
         file_a.write_text("data")
         file_b.write_text("data")
 

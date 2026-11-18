@@ -6,6 +6,7 @@ planner capabilities (parse, validate, compute) through their protocols.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from shared.src.common.taxonomy_sdc_error import (
@@ -25,6 +26,14 @@ from shared.src.planner.taxonomy_planner_request import (
 )
 
 # ─── Block 1: Module Declaration ──────────────────────────────────────
+
+
+def _slugify_title(title: str) -> str:
+    """Return the branch-name slug derived from a PR title."""
+    slug = re.sub(r"[^a-zA-Z0-9]+", "-", title.lower()).strip("-")
+    slug = re.sub(r"-{2,}", "-", slug)[:50].rstrip("-")
+    slug = slug.removesuffix(".lock")
+    return slug or "unnamed"
 
 
 class AgentPlanner(IPlanAggregate):
@@ -93,6 +102,19 @@ class AgentPlanner(IPlanAggregate):
             max_parallelism=compute_result.max_parallelism,
             linearized_order=compute_result.linearized_order,
             level_assignments=compute_result.level_assignments,
+            nodes=[
+                {
+                    "id": entry.id,
+                    "number": entry.number,
+                    "title": entry.title,
+                    "slug": _slugify_title(entry.title),
+                    "files": list(entry.files),
+                    "dependencies": list(entry.dependencies),
+                    "description": entry.description,
+                    "level": compute_result.level_assignments[entry.id],
+                }
+                for entry in parse_result.entries
+            ],
             errors=list(parse_result.errors),
         )
 

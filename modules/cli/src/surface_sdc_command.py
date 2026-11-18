@@ -82,7 +82,7 @@ def _build_parser() -> argparse.ArgumentParser:
 def _dispatch_host(args: argparse.Namespace) -> int:
     if args.host_cmd == "setup":
         request = HostRequest(action="setup", subdir=args.subdir)
-        result = _call_host(request, subdir=args.subdir)
+        result = _call_host(request)
         json.dump(
             {
                 "python": result.python,
@@ -96,7 +96,7 @@ def _dispatch_host(args: argparse.Namespace) -> int:
         return 0
     if args.host_cmd == "cleanup":
         request = HostRequest(action="cleanup", paths=args.paths)
-        result = _call_host(request, subdir="")
+        result = _call_host(request)
         return 1 if result.failed_count else 0
     return 2
 

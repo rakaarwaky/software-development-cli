@@ -31,6 +31,8 @@ def _wire_capabilities() -> None:
     """Instantiate the capabilities and inject them into the surface."""
     from cli.src.surface_sdc_command import set_capabilities
     from host.src.agent_host_orchestrator import HostAgent
+    from host.src.capabilities_host_cleanup import CapabilitiesHostCleanup
+    from host.src.capabilities_host_setup import CapabilitiesHostSetup
     from memory.src.agent_memory_orchestrator import AgentMemory
     from memory.src.capabilities_memory_path import CapabilitiesPath
     from memory.src.capabilities_memory_reader import CapabilitiesReader
@@ -46,7 +48,10 @@ def _wire_capabilities() -> None:
     computer = CapabilitiesComputeExecution()
 
     set_capabilities(
-        host=HostAgent(),
+        host=HostAgent(
+            setup_cap=CapabilitiesHostSetup(),
+            cleanup_cap=CapabilitiesHostCleanup(),
+        ),
         memory=AgentMemory(
             path_cap=CapabilitiesPath(),
             reader_cap=CapabilitiesReader(),

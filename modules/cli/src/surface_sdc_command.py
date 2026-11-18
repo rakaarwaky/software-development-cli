@@ -176,36 +176,28 @@ def _read_update_spec(args: argparse.Namespace) -> dict:
 
 # ─── Capability dispatch (injected by root) ────────────────────────────
 
-_HOST_CAPABILITIES: dict = {}
+_HOST_AGENT: object | None = None
 _MEMORY_CAPABILITY: object | None = None
 _PLANNER_CAPABILITY: object | None = None
 
 
 def set_capabilities(
-    host: dict,
+    host: object,
     memory: object,
     planner: object,
 ) -> None:
     """Inject the capability instances. Called by the root entry."""
-    global _HOST_CAPABILITIES, _MEMORY_CAPABILITY, _PLANNER_CAPABILITY
-    _HOST_CAPABILITIES = host
+    global _HOST_AGENT, _MEMORY_CAPABILITY, _PLANNER_CAPABILITY
+    _HOST_AGENT = host
     _MEMORY_CAPABILITY = memory
     _PLANNER_CAPABILITY = planner
 
 
 def _call_host(request: HostRequest, *, subdir: str) -> HostResult:
-    """Route a host request to the right per-skill capability.
-
-    ``subdir`` selects which capability to use:
-    - ``implement`` → HostImplement
-    - ``plan`` → HostDesign
-    - ``execute`` → HostExecute
-    - ``""`` (cleanup) → any capability (they share cleanup logic)
-    """
-    capability = _HOST_CAPABILITIES.get(subdir) or _HOST_CAPABILITIES.get("implement")
-    if capability is None:
-        raise HostError("host capability not wired; call set_capabilities first")
-    return capability.execute(request)
+    """Route a host request through the agent orchestrator."""
+    if _HOST_AGENT is None:
+        raise HostError("host agent not wired; call set_capabilities first")
+    return _HOST_AGENT.dispatch(request, subdir=subdir)
 
 
 def _call_memory(request: MemoryRequest) -> MemoryResult:

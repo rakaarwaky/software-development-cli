@@ -1,13 +1,13 @@
 """Host helper capability — implement skill (AES capabilities layer).
 
-Implements ``IHostAggregate`` for the ``implement`` subdir. Delegates to
+Implements ``IHostProtocol`` for the ``implement`` subdir. Delegates to
 the shared utility layer (``utility_host_helper``) for all logic.
 """
 
 from __future__ import annotations
 
 from shared.src.common.taxonomy_sdc_constant import SKILL_SUBDIR_IMPLEMENT
-from shared.src.host.contract_host_aggregate import IHostAggregate
+from shared.src.host.contract_host_protocol import IHostProtocol
 from shared.src.host.taxonomy_host_request import HostRequest, HostResult
 from shared.src.host.utility_host_helper import (
     make_cleanup_result,
@@ -18,7 +18,7 @@ from shared.src.host.utility_host_helper import (
 
 # ─── Block 1: Module Declaration ───────────────────────────────────────
 
-class HostImplement(IHostAggregate):
+class HostImplement(IHostProtocol):
     """Host capability for the ``implement`` skill subdir."""
 
     # ─── Block 2: Module Contract ──────────────────────────────────────

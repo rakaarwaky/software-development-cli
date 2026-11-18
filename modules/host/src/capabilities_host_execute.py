@@ -1,13 +1,13 @@
 """Host helper capability — execute-plan skill (AES capabilities layer).
 
-Implements ``IHostAggregate`` for the ``execute`` subdir. Delegates to the
+Implements ``IHostProtocol`` for the ``execute`` subdir. Delegates to the
 shared utility layer (``utility_host_helper``) for all logic.
 """
 
 from __future__ import annotations
 
 from shared.src.common.taxonomy_sdc_constant import SKILL_SUBDIR_EXECUTE
-from shared.src.host.contract_host_aggregate import IHostAggregate
+from shared.src.host.contract_host_protocol import IHostProtocol
 from shared.src.host.taxonomy_host_request import HostRequest, HostResult
 from shared.src.host.utility_host_helper import (
     make_cleanup_result,
@@ -18,7 +18,7 @@ from shared.src.host.utility_host_helper import (
 
 # ─── Block 1: Module Declaration ───────────────────────────────────────
 
-class HostExecute(IHostAggregate):
+class HostExecute(IHostProtocol):
     """Host capability for the ``execute-plan`` skill (uses ``execute`` subdir)."""
 
     # ─── Block 2: Module Contract ──────────────────────────────────────

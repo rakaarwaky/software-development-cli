@@ -11,9 +11,9 @@
 | PR-sdc-005 | Done | Port validate-plan.py → sdc validate-plan |
 | PR-sdc-006 | Done | Wire CLI surface + root entry + install.sh |
 | PR-sdc-007 | Done | Write docs (AGENTS, ARCHITECTURE, README, PRD, ROADMAP, CONTRIBUTING) |
-| PR-sdc-008 | In Progress | Test sdc end-to-end + AES lint scan |
-| PR-sdc-009 | Pending | Migrate skill references from python3 scripts to sdc |
-| PR-sdc-010 | Pending | Commit + push + verify on GitHub |
+| PR-sdc-008 | Done | Test sdc end-to-end + AES lint scan |
+| PR-sdc-009 | Done | Migrate skill references from python3 scripts to sdc |
+| PR-sdc-010 | In Progress | Commit + push + verify on GitHub |
 
 ## Reference
 

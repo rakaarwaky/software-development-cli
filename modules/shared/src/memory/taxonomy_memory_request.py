@@ -9,8 +9,8 @@ from dataclasses import dataclass, field
 class MemoryRequest:
     """Request dispatched to the memory capability.
 
-    ``action`` is one of ``path``, ``read``, ``snapshot``, ``top``,
-    ``update``. For ``update``, ``spec`` holds the parsed JSON dict (from
+    ``action`` is one of ``path``, ``read``, ``top``, ``update``.
+    For ``update``, ``spec`` holds the parsed JSON dict (from
     stdin or ``--file``). For ``top``, ``n`` and ``category`` hold the
     top-N query parameters.
     """
@@ -30,21 +30,11 @@ class UpdateSpec:
 
 
 @dataclass(frozen=True)
-class MemorySnapshot:
-    """A parsed memory-file snapshot: common issues, recent runs, existence flag."""
-
-    common_issues: list = field(default_factory=list)
-    recent_runs: list = field(default_factory=list)
-    exists: bool = False
-
-
-@dataclass(frozen=True)
 class MemoryResult:
     """Result returned by the memory capability.
 
     For ``path``: ``path`` holds the memory file path.
     For ``read``: ``content`` holds the file contents (empty if missing).
-    For ``snapshot``: ``snapshot`` holds the parsed JSON dict.
     For ``top``: ``top_patterns`` holds the top-N ``{category,
     description, count}`` dicts, ``top_total`` the post-filter pattern
     count, and ``top_exists`` whether the memory file exists.
@@ -53,7 +43,6 @@ class MemoryResult:
 
     path: str = ""
     content: str = ""
-    snapshot: dict = field(default_factory=dict)
     file: str = ""
     existed_before: bool = False
     stats: dict = field(default_factory=dict)

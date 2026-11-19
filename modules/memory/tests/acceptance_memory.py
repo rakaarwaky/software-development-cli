@@ -9,9 +9,10 @@ import pytest
 
 from memory.src.capabilities_memory_path import CapabilitiesPath
 from memory.src.capabilities_memory_reader import CapabilitiesReader
-from memory.src.capabilities_memory_snapshot import CapabilitiesSnapshot
+from memory.src.capabilities_memory_top import CapabilitiesTop
 from memory.src.capabilities_memory_writer import CapabilitiesWriter
 from shared.src.common.taxonomy_sdc_error import SpecError, WorkspaceIdError
+from shared.src.common.taxonomy_sdc_vo import PatternCount
 
 
 class TestFRMEM001Acceptance:
@@ -37,16 +38,16 @@ class TestFRMEM002Acceptance:
 
 
 class TestFRMEM003Acceptance:
-    """FR-MEM-003: Snapshot — business requirement met."""
+    """FR-MEM-003: Top — business requirement met."""
 
-    def test_snapshot_missing_file_returns_fallback(
+    def test_top_missing_file_returns_empty(
         self, isolated_home, git_repo
     ) -> None:
-        cap = CapabilitiesSnapshot()
-        snapshot = cap.read_snapshot()
-        assert snapshot.exists is False
-        assert snapshot.common_issues == []
-        assert snapshot.recent_runs == []
+        cap = CapabilitiesTop()
+        result = cap.top(PatternCount(5))
+        assert result.top_patterns == []
+        assert result.top_total == 0
+        assert result.top_exists is False
 
 
 class TestFRMEM004Acceptance:

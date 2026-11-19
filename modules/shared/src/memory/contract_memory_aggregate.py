@@ -1,6 +1,6 @@
 """Memory-domain contract (AES contract layer, ABC trait).
 
-Single entry point over the memory store capability: path, read, snapshot,
+Single entry point over the memory store capability: path, read, top,
 update. The CLI surface calls ``execute`` with a ``MemoryRequest`` and
 gets a ``MemoryResult`` back.
 """

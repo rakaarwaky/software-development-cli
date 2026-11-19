@@ -39,7 +39,7 @@ each added skill.
 ### In Scope
 
 - `sdc host setup|cleanup` for per-repo artifact directories, implemented on the AES 7-layer architecture and shipped through the XDG installer.
-- `sdc memory path|read|snapshot|update|top` for per-repo memory files, implemented on the AES 7-layer architecture and shipped through the XDG installer.
+- `sdc memory path|read|update|top` for per-repo memory files, implemented on the AES 7-layer architecture and shipped through the XDG installer.
 - `sdc validate-plan` for PR-plan DAG validation, implemented on the AES 7-layer architecture and shipped through the XDG installer.
 - `sdc` CLI surface dispatching to host, memory, and planner contracts, shipped through `scripts/install.sh` to `~/.local/bin/sdc`.
 
@@ -106,7 +106,7 @@ given path and skips missing ones.
 
 #### Proposed Solution
 
-`sdc memory path|read|snapshot|update` manages a per-repo memory file under
+`sdc memory path|read|update|top` manages a per-repo memory file under
 `~/.agents/develop/<reponame>/memory/`. `update` merges a JSON spec from stdin
 (or `--file`) into the file under an exclusive lock, skipping lines that
 already exist.
@@ -114,7 +114,7 @@ already exist.
 #### Main User Flow
 
 1. Skill step calls `sdc memory path` to learn where memory lives.
-2. Skill step calls `sdc memory read` or `sdc memory snapshot` to load it.
+2. Skill step calls `sdc memory read` or `sdc memory top` to load it.
 3. Skill step pipes a JSON spec into `sdc memory update` to merge new notes.
 4. Skill step calls `sdc memory top` to pull the most-recurring patterns without parsing the whole file.
 

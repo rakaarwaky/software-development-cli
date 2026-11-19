@@ -3,13 +3,13 @@
 ## Feature Overview
 
 ```text
-[Surface] --> [AgentMemory] --> [CapabilitiesPath / CapabilitiesReader / CapabilitiesSnapshot / CapabilitiesWriter]
+[Surface] --> [AgentMemory] --> [CapabilitiesPath / CapabilitiesReader / CapabilitiesTop / CapabilitiesWriter]
 [Surface] --> [utility_memory_helper] (shared stateless logic)
 [AgentMemory] --> [IMemoryAggregate] (contract)
 [Capabilities*] --> [IMemory*Protocol] (contract)
 ```
 
-The **Memory Store** feature manages workspace-scoped review pattern memory files for the `sdc` toolchain. It resolves a deterministic per-repository memory path, reads and parses the markdown file into a structured snapshot, returns top-N issue patterns read-only, and merges new run patterns or issue entries under an exclusive file lock with atomic writes. The feature exposes five caller-observable actions: `path`, `read`, `snapshot`, `top`, and `update`.
+The **Memory Store** feature manages workspace-scoped review pattern memory files for the `sdc` toolchain. It resolves a deterministic per-repository memory path, reads the raw markdown content, returns top-N issue patterns read-only, and merges new run patterns or issue entries under an exclusive file lock with atomic writes. The feature exposes four caller-observable actions: `path`, `read`, `top`, and `update`.
 
 ## Functional Requirements
 
@@ -95,47 +95,45 @@ The feature shall return the raw markdown content of the memory file. When the f
 | Read latency (p95) | < 50ms |
 | Missing-file handling correctness | 100% (empty string, no error) |
 
-### FR-MEM-003: Snapshot memory state
+### FR-MEM-003: Return top-N issue patterns (read-only)
 
 **Description:**
-The feature shall parse the memory markdown file into a structured JSON snapshot containing all common issues and recent runs. When the file does not exist, the snapshot shall indicate `exists: false`.
+The feature shall return the top-N common issue patterns from the memory file as a read-only query, without acquiring the exclusive write lock.
 
 #### Business Logic
-- The feature shall parse the markdown file into three sections: header lines, common issues (grouped by category), and recent runs (with date, description, and body lines).
-- The snapshot payload shall contain `common_issues` as a flat list of `{category, description, count}` objects, `recent_runs` as a list of `{date, description, workflow, body_lines}` objects, and `exists` as a boolean.
-- The `workflow` field of a recent run shall hold the value recorded in the run's `- **Workflow**: <value>` body line, or `null` when no such line is present.
-- When the memory file does not exist, `common_issues` shall be an empty list, `recent_runs` shall be an empty list, and `exists` shall be `false`.
-- Category matching during parse shall be case-insensitive and whitespace-normalised.
-- Issue descriptions shall be matched for dedup using lowercase, trailing-punctuation-stripped, whitespace-collapsed normalisation.
+- The feature shall read the memory file at the resolved path (no lock — same posture as `read`) and flatten `common_issues` into `{category, description, count}` objects.
+- The result list shall be sorted by count descending, then description ascending (case-insensitive), and truncated to `n` entries (default 10).
+- When a `category` filter is provided (case- and whitespace-insensitive matching), only patterns from that category shall be returned; an unknown category yields an empty list.
+- `total` shall count the patterns after the category filter (before the `n` truncation).
+- When the memory file does not exist, the feature shall return `patterns: []`, `total: 0`, and `exists: false` without error.
 
 #### Edge Cases
-- If the markdown file is malformed (e.g., an issue line without a preceding category heading), the parser shall skip the unmatched line and continue.
-- If the file exists but contains only the default header with no issue or run sections, the snapshot shall return empty lists with `exists: true`.
-- If the file is empty or whitespace-only, the snapshot shall return empty lists with `exists: true`.
+- If `n < 1`, the feature shall raise `SpecError` with exit code `2`.
+- If the file is malformed (e.g., an issue line without a preceding category heading), unparseable lines shall be skipped and continue.
 
 #### Technical Specification
 | Aspect | Detail |
 |--------|--------|
-| **Input** | None (uses the resolved memory file path); source: CLI `sdc memory snapshot` |
-| **Output** | JSON object `{common_issues: [...], recent_runs: [...], exists: bool}` written to stdout |
-| **Protocol** | `IMemorySnapshotProtocol` |
-| **Method** | `read_snapshot()` |
+| **Input** | `n` (positive integer, default 10) and optional `category`; source: CLI `sdc memory top --n <int> [--category <str>]` |
+| **Output** | JSON object `{"patterns": [{category, description, count}], "total": int, "exists": bool}` written to stdout |
+| **Protocol** | `IMemoryTopProtocol` |
+| **Method** | `top(n: PatternCount, category: PatternCategory \| None = None)` |
 | **Event** | none |
-| **Error** | `WorkspaceIdError` when the workspace id cannot be resolved |
+| **Error** | `WorkspaceIdError` when workspace id cannot be resolved |
 
 #### Test
 | Context | When Action | Then Observable Result |
 |---------|-------------|------------------------|
-| Memory file exists with issues and runs | Call `read_snapshot()` | JSON contains populated `common_issues` and `recent_runs` arrays and `exists: true` |
-| Memory file does not exist | Call `read_snapshot()` | JSON contains empty `common_issues` and `recent_runs` arrays and `exists: false` |
-| Memory file exists with only the default header | Call `read_snapshot()` | JSON contains empty `common_issues` and `recent_runs` arrays and `exists: true` |
-| Not inside a git repo | Call `read_snapshot()` | `WorkspaceIdError` is raised with exit code `2` |
+| Memory file exists with N patterns | Call `top(PatternCount(10))` | JSON contains up to 10 patterns sorted count-desc then description-asc, `exists: true` |
+| Memory file does not exist | Call `top(PatternCount(10))` | JSON contains empty `patterns` list, `total: 0`, `exists: false` |
+| Category filter matches subset | Call `top(PatternCount(10), PatternCategory("Testing"))` | Only Testing patterns returned, `total` reflects filtered count |
+| `n` exceeds total pattern count | Call `top(PatternCount(1000))` | All patterns returned, no error |
 
 #### Metric
 | Target Metric | Value |
 |---------------|-------|
-| Snapshot latency (p95) | < 50ms |
-| Parse fidelity (issues + runs correctly extracted) | 100% |
+| Top-N latency (p95) | < 50ms |
+| Sort fidelity (count desc, description asc) | 100% |
 
 ### FR-MEM-004: Update memory file
 
@@ -189,48 +187,6 @@ The feature shall merge a run specification into the memory markdown file under 
 | Dedup correctness | 0 duplicate entries after merge |
 | Atomic write success rate | 100% |
 | Lock timeout accuracy | 100% (raises within 30s ± 0.2s) |
-
-### FR-MEM-005: Top-N patterns
-
-**Description:**
-The feature shall return the top-N common issue patterns of the memory file as a read-only query, without acquiring the exclusive write lock. The result shall be a JSON-ready payload of `{"patterns": [...], "total": T, "exists": bool}`.
-
-#### Business Logic
-- The feature shall read the memory file (no lock — same posture as `read`/`snapshot`) and flatten `common_issues` into `{category, description, count}` objects.
-- The result list shall be sorted by count descending, then description ascending (case-insensitive), and truncated to N entries.
-- When a category filter is provided, entries shall be restricted to that category using case- and whitespace-insensitive matching; an unknown category shall yield an empty list.
-- `total` shall count the patterns after the category filter (before the N truncation).
-- When the memory file does not exist, the feature shall return `patterns: []`, `total: 0`, and `exists: false` without error.
-- N shall be a positive integer enforced at the CLI surface; N larger than the pattern count returns all patterns.
-
-#### Edge Cases
-- If the memory file does not exist, the result is empty with `exists: false` and exit code `0`.
-- If N is zero or negative at the CLI surface, the feature shall reject the invocation with a usage error (exit code `2`).
-
-#### Technical Specification
-| Aspect | Detail |
-|--------|--------|
-| **Input** | N (positive integer, default 10) and optional category filter; source: CLI `sdc memory top [--n N] [--category NAME]` |
-| **Output** | JSON object `{"patterns": [{category, description, count}], "total": int, "exists": bool}` written to stdout |
-| **Protocol** | `IMemoryTopProtocol` |
-| **Method** | `top(n, category)` |
-| **Event** | none |
-| **Error** | `WorkspaceIdError` when the workspace id cannot be resolved |
-
-#### Test
-| Context | When Action | Then Observable Result |
-|---------|-------------|------------------------|
-| Memory file does not exist | Call `top(10)` | `{"patterns": [], "total": 0, "exists": false}`; exit code `0` |
-| File has patterns across categories | Call `top(2)` | Two entries, sorted count-desc then description-asc; `total` is the full count |
-| Category filter given | Call `top(10, "testing")` | Only that category's entries, count-desc; matching is case-insensitive |
-| N exceeds pattern count | Call `top(100)` | All patterns returned; `total` equals the returned count |
-| `--n 0` at CLI | Call `sdc memory top --n 0` | Usage error on stderr, exit code `2` |
-
-#### Metric
-| Target Metric | Value |
-|---------------|-------|
-| Top latency (p95, no contention) | < 50ms |
-| Sort fidelity (count desc, description asc) | 100% |
 
 ## Public Interface
 

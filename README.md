@@ -23,21 +23,19 @@ into one binary. It replaces the per-skill `scripts/host.py`,
 | 2 | Install | `bash scripts/install.sh` (local XDG `~/.local/bin/sdc`) or `bash scripts/install.sh --global` (system-wide, needs sudo) |
 | 3 | Host setup | `sdc host setup --subdir implement` |
 | 4 | Memory path | `sdc memory path` |
-| 5 | Memory snapshot | `sdc memory snapshot` |
-| 6 | Memory update | `echo '{"patterns":[...]}' \| sdc memory update` |
-| 7 | Memory top | `sdc memory top [--n N] [--category NAME]` |
-| 8 | Validate plan | `sdc validate-plan <plan-doc-path>` |
+| 5 | Memory update | `echo '{"patterns":[...]}' \| sdc memory update` |
+| 6 | Memory top | `sdc memory top [--n N] [--category NAME]` |
+| 7 | Validate plan | `sdc validate-plan <plan-doc-path>` |
 
 ### `sdc host <setup|cleanup>`
 
 - `setup --subdir <implement|plan|execute>`: Creates `~/.agents/develop/<reponame>/<subdir>/` and prints JSON `{python, scratch_dir, run_id}`.
 - `cleanup <paths...>`: Unlinks each path; missing paths are skipped.
 
-### `sdc memory <path|read|snapshot|update|top>`
+### `sdc memory <path|read|update|top>`
 
 - `path`: Print the memory file path for this workspace.
 - `read`: Print the memory file contents (empty if missing).
-- `snapshot`: Print the parsed memory file as JSON (`common_issues`, `recent_runs`, `exists`).
 - `update [--file <path>]`: Merge a JSON spec from stdin (or `--file`) into the memory file under an exclusive lock. The spec accepts `patterns` and an optional `run` object; `run.workflow` records the originating skill (`impl`/`exec`/`plan`/`grill`) as a `- **Workflow**:` body line.
 - `top [--n N] [--category NAME]`: Print the top N common issue patterns as JSON (`patterns` sorted count-desc, `total`, `exists`), optionally filtered by category (case-insensitive). Read-only.
 

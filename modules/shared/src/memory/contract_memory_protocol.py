@@ -1,9 +1,8 @@
 """Memory-domain capability contracts (AES102 `_protocol`).
 
-One file for the memory feature declaring 5 rich capability seams:
+One file for the memory feature declaring 4 rich capability seams:
 - IMemoryPathProtocol: resolves file/lock paths for the current repo
 - IMemoryReaderProtocol: reads raw markdown content of the memory file
-- IMemorySnapshotProtocol: parses and returns structured snapshot data
 - IMemoryWriterProtocol: merges run patterns/specs under exclusive lock
 - IMemoryTopProtocol: returns the top-N common issue patterns (read-only)
 """
@@ -20,7 +19,6 @@ from shared.src.common.taxonomy_sdc_vo import (
 )
 from shared.src.memory.taxonomy_memory_request import (
     MemoryResult,
-    MemorySnapshot,
     UpdateSpec,
 )
 
@@ -40,15 +38,6 @@ class IMemoryReaderProtocol(ABC):
     @abstractmethod
     def read_content(self) -> MemoryContent:
         """Read and return raw memory markdown content, or empty string if missing."""
-        ...
-
-
-class IMemorySnapshotProtocol(ABC):
-    """Structured parsing capability seam for the memory file."""
-
-    @abstractmethod
-    def read_snapshot(self) -> MemorySnapshot:
-        """Parse and return ``{"common_issues": [...], "recent_runs": [...], "exists": bool}``."""
         ...
 
 
@@ -75,7 +64,6 @@ class IMemoryTopProtocol(ABC):
 __all__ = [
     "IMemoryPathProtocol",
     "IMemoryReaderProtocol",
-    "IMemorySnapshotProtocol",
     "IMemoryTopProtocol",
     "IMemoryWriterProtocol",
 ]
@@ -83,7 +71,6 @@ __all__ = [
 _layer_symbols = {
     "IMemoryPathProtocol": IMemoryPathProtocol,
     "IMemoryReaderProtocol": IMemoryReaderProtocol,
-    "IMemorySnapshotProtocol": IMemorySnapshotProtocol,
     "IMemoryWriterProtocol": IMemoryWriterProtocol,
     "IMemoryTopProtocol": IMemoryTopProtocol,
 }

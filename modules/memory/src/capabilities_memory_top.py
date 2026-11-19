@@ -1,7 +1,7 @@
 """Memory top-patterns capability (AES capabilities layer).
 
 Implements IMemoryTopProtocol: reads the memory file (read-only, no
-lock — same posture as the reader/snapshot capabilities) and returns
+lock — same posture as the reader capability) and returns
 the top-N common issue patterns, optionally filtered by category.
 """
 

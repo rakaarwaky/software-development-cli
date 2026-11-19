@@ -2,7 +2,7 @@
 
 ## Progress Overview
 
-The memory helper feature is implemented: per-repo memory under `~/.agents/develop/<reponame>/memory/` with path resolution, markdown read/snapshot/update.
+The memory helper feature is implemented: per-repo memory under `~/.agents/develop/<reponame>/memory/` with path resolution, markdown read/update.
 
 ## Backlog Status
 
@@ -26,12 +26,12 @@ The memory helper feature is implemented: per-repo memory under `~/.agents/devel
 | Risk         | None                                        |
 | Updated      | 2026-11-18                                  |
 
-### FR-MEM-003: Snapshot memory state
+### FR-MEM-003: Return top-N issue patterns (read-only)
 
 | Aspect       | Detail                                      |
 |--------------|---------------------------------------------|
 | State        | Done                                        |
-| Done         | Structured `{common_issues, recent_runs, exists}` JSON snapshot with case-insensitive category matching and dedup normalisation |
+| Done         | Read-only top-N count-desc patterns, optional case-insensitive category filter; missing file → empty result, exit 0; payload `{"patterns": [...], "total": N, "exists": bool}` |
 | In Progress  | None                                        |
 | Risk         | None                                        |
 | Updated      | 2026-11-18                                  |
@@ -42,16 +42,6 @@ The memory helper feature is implemented: per-repo memory under `~/.agents/devel
 |--------------|---------------------------------------------|
 | State        | Done                                        |
 | Done         | Exclusive `flock` (30s/0.2s) + atomic `tempfile.mkstemp`/`os.replace` write at `0o600`; dedup, category cap 25, recent runs cap 20; `run.workflow` rendered as `- **Workflow**: <value>` body line |
-| In Progress  | None                                        |
-| Risk         | None                                        |
-| Updated      | 2026-11-18                                  |
-
-### FR-MEM-005: Top-N patterns
-
-| Aspect       | Detail                                      |
-|--------------|---------------------------------------------|
-| State        | Done                                        |
-| Done         | Read-only top-N count-desc patterns, optional case-insensitive category filter; missing file → empty result, exit 0; payload `{"patterns": [...], "total": N, "exists": bool}` |
 | In Progress  | None                                        |
 | Risk         | None                                        |
 | Updated      | 2026-11-18                                  |

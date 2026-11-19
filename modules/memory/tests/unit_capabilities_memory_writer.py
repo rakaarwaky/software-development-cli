@@ -15,7 +15,7 @@ from typing import Any
 
 import pytest
 
-from memory.src.capabilities_memory_snapshot import CapabilitiesSnapshot
+from memory.src.capabilities_memory_top import CapabilitiesTop
 from memory.src.capabilities_memory_writer import CapabilitiesWriter
 from shared.src.common.taxonomy_sdc_error import SpecError
 from shared.src.memory.taxonomy_memory_request import MemoryResult
@@ -120,22 +120,25 @@ class TestCapabilitiesWriterWorkflow:
         assert "- **Workflow**: plan" in text
         assert text.index("**Workflow**") < text.index("**Rounds**")
 
-    def test_workflow_round_trips_into_snapshot(
+    def test_workflow_round_trips_into_memory_file(
         self, isolated_home: Path, git_repo: Path
     ) -> None:
         writer = CapabilitiesWriter()
         writer.update({"run": {"workflow": "grill", "rounds": 3}})
-        snapshot = CapabilitiesSnapshot().read_snapshot()
-        runs = snapshot.recent_runs
-        assert runs[0]["workflow"] == "grill"
+        text = (Path(writer.update({"run": {"rounds": 3}}).file)).read_text(
+            encoding="utf-8"
+        )
+        # Workflow field must appear in Recent Runs section
+        assert "**Workflow**: grill" in text
 
-    def test_run_without_workflow_yields_null_snapshot_field(
+    def test_run_without_workflow_omits_field(
         self, isolated_home: Path, git_repo: Path
     ) -> None:
         writer = CapabilitiesWriter()
         writer.update({"run": {"rounds": 1}})
-        snapshot = CapabilitiesSnapshot().read_snapshot()
-        assert snapshot.recent_runs[0]["workflow"] is None
+        res = writer.update({"run": {"rounds": 2}})
+        text = Path(res.file).read_text(encoding="utf-8")
+        assert "**Workflow**" not in text
 
     def test_non_string_workflow_raises_spec_error(
         self, isolated_home: Path, git_repo: Path

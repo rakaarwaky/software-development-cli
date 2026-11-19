@@ -60,12 +60,11 @@ def _build_parser() -> argparse.ArgumentParser:
     host_cleanup = host_sub.add_parser("cleanup", help="Unlink files; missing paths are ok.")
     host_cleanup.add_argument("paths", nargs="+", help="Files to unlink.")
 
-    # sdc memory <path|read|snapshot|update|top>
+    # sdc memory <path|read|update|top>
     mem = sub.add_parser("memory", help="Workspace-scoped memory file manager.")
     mem_sub = mem.add_subparsers(dest="memory_cmd", required=True, metavar="<command>")
     mem_sub.add_parser("path", help="Print the memory file path for this workspace.")
     mem_sub.add_parser("read", help="Print the memory file contents (empty if missing).")
-    mem_sub.add_parser("snapshot", help="Print the parsed memory file as JSON.")
     mem_update = mem_sub.add_parser(
         "update",
         help="Merge a JSON spec from stdin (or --file) into the memory file under an exclusive lock.",
@@ -163,11 +162,6 @@ def _dispatch_memory(args: argparse.Namespace) -> int:
         sys.stdout.write(str(result.content))
         if result.content and not result.content.endswith("\n"):
             sys.stdout.write("\n")
-        return 0
-    if args.memory_cmd == "snapshot":
-        result = _call_memory(MemoryRequest(action="snapshot"))
-        json.dump(result.snapshot, sys.stdout, indent=2)
-        sys.stdout.write("\n")
         return 0
     if args.memory_cmd == "top":
         result = _call_memory(

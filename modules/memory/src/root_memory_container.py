@@ -1,4 +1,4 @@
-"""Memory composition root — wires five capabilities into AgentMemory."""
+"""Memory composition root — wires four capabilities into AgentMemory."""
 
 from __future__ import annotations
 
@@ -7,7 +7,6 @@ from shared.src.memory.contract_memory_aggregate import IMemoryAggregate
 from modules.memory.src.agent_memory_orchestrator import AgentMemory
 from modules.memory.src.capabilities_memory_path import CapabilitiesPath
 from modules.memory.src.capabilities_memory_reader import CapabilitiesReader
-from modules.memory.src.capabilities_memory_snapshot import CapabilitiesSnapshot
 from modules.memory.src.capabilities_memory_top import CapabilitiesTop
 from modules.memory.src.capabilities_memory_writer import CapabilitiesWriter
 
@@ -19,7 +18,6 @@ class MemoryContainer:
         self._orchestrator = AgentMemory(
             path_cap=CapabilitiesPath(),
             reader_cap=CapabilitiesReader(),
-            snapshot_cap=CapabilitiesSnapshot(),
             writer_cap=CapabilitiesWriter(),
             top_cap=CapabilitiesTop(),
         )

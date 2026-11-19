@@ -1,7 +1,7 @@
 """Unit tests for AgentMemory (agent_memory_orchestrator).
 
 Covers:
-- Routing path, read, snapshot, update actions to injected capabilities
+- Routing path, read, top, update actions to injected capabilities
 - SpecError raised on unknown action
 - Factory method AgentMemory.create()
 """
@@ -9,6 +9,7 @@ Covers:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -42,18 +43,6 @@ class FakeReaderCap:
 
     def read_content(self) -> str:
         return self.content
-
-
-class FakeSnapshotCap:
-    def __init__(self, snapshot: dict[str, Any] | None = None) -> None:
-        self.snapshot = snapshot or {
-            "common_issues": [],
-            "recent_runs": [],
-            "exists": True,
-        }
-
-    def read_snapshot(self) -> dict[str, Any]:
-        return self.snapshot
 
 
 class FakeWriterCap:
@@ -95,11 +84,6 @@ def reader_cap() -> FakeReaderCap:
 
 
 @pytest.fixture()
-def snapshot_cap() -> FakeSnapshotCap:
-    return FakeSnapshotCap()
-
-
-@pytest.fixture()
 def writer_cap() -> FakeWriterCap:
     return FakeWriterCap()
 
@@ -113,14 +97,12 @@ def top_cap() -> FakeTopCap:
 def agent(
     path_cap: FakePathCap,
     reader_cap: FakeReaderCap,
-    snapshot_cap: FakeSnapshotCap,
     writer_cap: FakeWriterCap,
     top_cap: FakeTopCap,
 ) -> AgentMemory:
     return AgentMemory(
         path_cap=path_cap,
         reader_cap=reader_cap,
-        snapshot_cap=snapshot_cap,
         writer_cap=writer_cap,
         top_cap=top_cap,
     )
@@ -138,15 +120,6 @@ class TestAgentMemoryDispatch:
         req = MemoryRequest(action="read")
         res = agent.execute(req)
         assert res.content == "memory markdown content"
-
-    def test_dispatch_snapshot_action(self, agent: AgentMemory) -> None:
-        req = MemoryRequest(action="snapshot")
-        res = agent.execute(req)
-        assert res.snapshot == {
-            "common_issues": [],
-            "recent_runs": [],
-            "exists": True,
-        }
 
     def test_dispatch_top_action(
         self, agent: AgentMemory, top_cap: FakeTopCap
@@ -183,20 +156,18 @@ class TestAgentMemoryDispatch:
 
         assert exc_info.value.exit_code == 4
         assert "memory: unknown action 'invalid_action'" in str(exc_info.value)
-        assert "'path', 'read', 'snapshot', 'top', or 'update'" in str(exc_info.value)
+        assert "'path', 'read', 'top', or 'update'" in str(exc_info.value)
 
     def test_create_factory(
         self,
         path_cap: FakePathCap,
         reader_cap: FakeReaderCap,
-        snapshot_cap: FakeSnapshotCap,
         writer_cap: FakeWriterCap,
         top_cap: FakeTopCap,
     ) -> AgentMemory:
         ag = AgentMemory.create(
             path_cap=path_cap,
             reader_cap=reader_cap,
-            snapshot_cap=snapshot_cap,
             writer_cap=writer_cap,
             top_cap=top_cap,
         )

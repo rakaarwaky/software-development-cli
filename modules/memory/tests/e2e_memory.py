@@ -12,7 +12,6 @@ import pytest
 from memory.src.agent_memory_orchestrator import AgentMemory
 from memory.src.capabilities_memory_path import CapabilitiesPath
 from memory.src.capabilities_memory_reader import CapabilitiesReader
-from memory.src.capabilities_memory_snapshot import CapabilitiesSnapshot
 from memory.src.capabilities_memory_top import CapabilitiesTop
 from memory.src.capabilities_memory_writer import CapabilitiesWriter
 from shared.src.memory.taxonomy_memory_request import MemoryRequest
@@ -22,16 +21,15 @@ def _make_orchestrator() -> AgentMemory:
     return AgentMemory(
         path_cap=CapabilitiesPath(),
         reader_cap=CapabilitiesReader(),
-        snapshot_cap=CapabilitiesSnapshot(),
         writer_cap=CapabilitiesWriter(),
         top_cap=CapabilitiesTop(),
     )
 
 
 class TestMemoryE2E:
-    """Full lifecycle: path → read → snapshot → update → read."""
+    """Full lifecycle: path → read → top → update → read."""
 
-    def test_path_read_snapshot_update_lifecycle(
+    def test_path_read_top_update_lifecycle(
         self, isolated_home: Path, git_repo: Path
     ) -> None:
         agent = _make_orchestrator()
@@ -42,9 +40,9 @@ class TestMemoryE2E:
         read_result = agent.execute(MemoryRequest(action="read"))
         assert isinstance(read_result.content, str)
 
-        snap_result = agent.execute(MemoryRequest(action="snapshot"))
-        assert isinstance(snap_result.snapshot, dict)
-        assert "exists" in snap_result.snapshot
+        top_result = agent.execute(MemoryRequest(action="top", n=5))
+        assert isinstance(top_result.top_patterns, list)
+        assert isinstance(top_result.top_total, int)
 
         update_result = agent.execute(
             MemoryRequest(

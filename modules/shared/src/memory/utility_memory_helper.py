@@ -39,7 +39,6 @@ from shared.src.common.taxonomy_sdc_constant import (
     SSH_REMOTE_RE,
     URL_REMOTE_RE,
     WHITESPACE_RE,
-    WORKFLOW_LINE_RE,
 )
 from shared.src.common.taxonomy_sdc_error import (
     HostError,
@@ -664,35 +663,4 @@ def release_lock(fd: int) -> None:
         pass
 
 
-def _extract_workflow(body_lines: list[str]) -> str | None:
-    """Return the workflow recorded in a run's body lines, or None."""
-    for line in body_lines:
-        m = WORKFLOW_LINE_RE.match(line)
-        if m:
-            return m.group(1).strip()
-    return None
 
-
-def build_snapshot_payload(state: dict[str, Any], *, exists: bool) -> dict[str, Any]:
-    """Build JSON snapshot dict from parsed state."""
-    return {
-        "common_issues": [
-            {
-                "category": cat,
-                "description": e["description"],
-                "count": e["count"],
-            }
-            for cat, entries in state["common_issues"].items()
-            for e in entries
-        ],
-        "recent_runs": [
-            {
-                "date": r["date"],
-                "description": r["description"],
-                "workflow": _extract_workflow(r.get("body_lines") or []),
-                "body_lines": r["body_lines"],
-            }
-            for r in state["recent_runs"]
-        ],
-        "exists": exists,
-    }

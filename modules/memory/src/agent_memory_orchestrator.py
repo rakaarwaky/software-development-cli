@@ -12,14 +12,12 @@ from shared.src.memory.contract_memory_aggregate import IMemoryAggregate
 from shared.src.memory.contract_memory_protocol import (
     IMemoryPathProtocol,
     IMemoryReaderProtocol,
-    IMemorySnapshotProtocol,
     IMemoryTopProtocol,
     IMemoryWriterProtocol,
 )
 from shared.src.memory.taxonomy_memory_request import (
     MemoryRequest,
     MemoryResult,
-    MemorySnapshot,
     UpdateSpec,
 )
 
@@ -29,7 +27,7 @@ from shared.src.memory.taxonomy_memory_request import (
 class AgentMemory(IMemoryAggregate):
     """Agent orchestrator for the memory feature.
 
-    Routes the 5 memory operations (path, read, snapshot, top, update)
+    Routes the 4 memory operations (path, read, top, update)
     to their respective capability seams.
     """
 
@@ -37,13 +35,11 @@ class AgentMemory(IMemoryAggregate):
         self,
         path_cap: IMemoryPathProtocol,
         reader_cap: IMemoryReaderProtocol,
-        snapshot_cap: IMemorySnapshotProtocol,
         writer_cap: IMemoryWriterProtocol,
         top_cap: IMemoryTopProtocol,
     ) -> None:
         self._path = path_cap
         self._reader = reader_cap
-        self._snapshot = snapshot_cap
         self._writer = writer_cap
         self._top = top_cap
 
@@ -55,8 +51,6 @@ class AgentMemory(IMemoryAggregate):
             return MemoryResult(path=str(paths.file))
         if request.action == "read":
             return MemoryResult(content=str(self._reader.read_content()))
-        if request.action == "snapshot":
-            return MemoryResult(snapshot=self._snapshot_payload())
         if request.action == "top":
             n = PatternCount(request.n)
             category = PatternCategory(request.category) if request.category else None
@@ -65,13 +59,8 @@ class AgentMemory(IMemoryAggregate):
             return self._writer.update(self._as_update_spec(request.spec))
         raise SpecError(
             f"memory: unknown action {request.action!r}; "
-            "expected 'path', 'read', 'snapshot', 'top', or 'update'"
+            "expected 'path', 'read', 'top', or 'update'"
         )
-
-    def _snapshot_payload(self) -> dict:
-        """Return the snapshot as a plain dict for JSON rendering."""
-        snapshot = self._snapshot.read_snapshot()
-        return _snapshot_to_dict(snapshot)
 
     @staticmethod
     def _as_update_spec(spec: object) -> UpdateSpec:
@@ -89,30 +78,15 @@ class AgentMemory(IMemoryAggregate):
         cls,
         path_cap: IMemoryPathProtocol,
         reader_cap: IMemoryReaderProtocol,
-        snapshot_cap: IMemorySnapshotProtocol,
         writer_cap: IMemoryWriterProtocol,
         top_cap: IMemoryTopProtocol,
     ) -> AgentMemory:
         return cls(
             path_cap=path_cap,
             reader_cap=reader_cap,
-            snapshot_cap=snapshot_cap,
             writer_cap=writer_cap,
             top_cap=top_cap,
         )
 
     def __repr__(self) -> str:
         return "AgentMemory()"
-
-
-def _snapshot_to_dict(snapshot: object) -> dict:
-    """Coerce a ``MemorySnapshot`` VO into a plain dict for JSON rendering."""
-    if isinstance(snapshot, dict):
-        return snapshot
-    if isinstance(snapshot, MemorySnapshot):
-        return {
-            "common_issues": list(snapshot.common_issues),
-            "recent_runs": list(snapshot.recent_runs),
-            "exists": snapshot.exists,
-        }
-    raise SpecError("snapshot must be a MemorySnapshot or a dict")

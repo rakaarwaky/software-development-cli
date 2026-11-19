@@ -175,21 +175,6 @@ def test_memory_read_empty_no_extra_newline():
     assert out.getvalue() == ""
 
 
-def test_memory_snapshot_prints_json():
-    cap = MagicMock()
-    cap.execute.return_value = MemoryResult(snapshot={"cats": 1, "patterns": 2})
-    _wire(cap_memory=cap)
-    out = StringIO()
-    old_out = sys.stdout
-    sys.stdout = out
-    try:
-        code = cmd_sdc(["memory", "snapshot"])
-    finally:
-        sys.stdout = old_out
-    assert code == 0
-    assert json.loads(out.getvalue()) == {"cats": 1, "patterns": 2}
-
-
 # ── validate-plan ───────────────────────────────────────────────────────
 
 def test_validate_plan_valid_exits_zero():

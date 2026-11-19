@@ -29,7 +29,6 @@ The feature shall resolve the absolute path to the memory markdown file for the 
 #### Edge Cases
 - If the git origin remote URL is unresolvable and `git rev-parse --git-common-dir` fails and the current working directory is inaccessible, the feature shall raise `WorkspaceIdError`.
 - If the home directory cannot be determined, the feature shall raise `WorkspaceIdError`.
-- If the repo slug cannot be resolved from git, the feature shall raise `WorkspaceIdError`.
 - If directory creation fails, the feature shall raise `WorkspaceIdError` with the path and the underlying `OSError`.
 
 #### Technical Specification
@@ -40,14 +39,14 @@ The feature shall resolve the absolute path to the memory markdown file for the 
 | **Protocol** | `IMemoryPathProtocol` |
 | **Method** | `resolve_paths()` |
 | **Event** | none |
-| **Error** | `WorkspaceIdError` when no usable id source is found, when the home directory is undeterminable, when the repo slug cannot be resolved, or when directory creation fails |
+| **Error** | `WorkspaceIdError` when no usable id source is found, when the home directory is undeterminable, or when directory creation fails |
 
 #### Test
 | Context | When Action | Then Observable Result |
 |---------|-------------|------------------------|
 | Inside a git repo with an origin remote | Call `resolve_paths()` | A path `~/.agents/develop/<repo-slug>/memory/<workspace-id>.md` is returned; `workspace-id` matches `^[a-z0-9._-]+-[0-9a-f]{12}$` |
 | Inside a git repo without an origin remote | Call `resolve_paths()` | The id source falls back to the git common dir; a deterministic path is returned |
-| Not inside a git repo | Call `resolve_paths()` | `WorkspaceIdError` is raised with exit code `2` |
+| Not inside a git repo, cwd readable | Call `resolve_paths()` | Id source is the resolved cwd; deterministic path returned; exit `0` |
 | `create_dir=True` and directory does not exist | Call `resolve_paths(create_dir=True)` | The memory directory is created with mode `0o700` |
 
 #### Metric
@@ -87,7 +86,7 @@ The feature shall return the raw markdown content of the memory file. When the f
 | Memory file exists with content | Call `read_content()` | The raw markdown content is returned verbatim |
 | Memory file does not exist | Call `read_content()` | An empty string is returned; exit code is `0` |
 | Memory file exists but is empty | Call `read_content()` | An empty string is returned; exit code is `0` |
-| Not inside a git repo | Call `read_content()` | `WorkspaceIdError` is raised with exit code `2` |
+| Not inside a git repo, cwd readable | Call `read_content()` | File content returned (or empty string if missing); exit `0` |
 
 #### Metric
 | Target Metric | Value |
@@ -155,6 +154,8 @@ The feature shall merge a run specification into the memory markdown file under 
 - If `patterns` is not a list, the feature shall raise `SpecError`.
 - If a pattern entry is not an object, or its `category`/`description` fields have the wrong type, the feature shall raise `SpecError`.
 - If `run.date` is provided but not a calendar-valid `YYYY-MM-DD` string, the feature shall raise `SpecError`.
+- If `run.description` is provided and is not a string, the feature shall raise `SpecError`.
+- If `run.description` is provided and does not start with one of `impl: `, `exec: `, `plan: `, or `grill: `, the feature shall raise `SpecError` with exit code `4` and a message naming the accepted prefixes.
 - If the exclusive lock cannot be acquired within 30 seconds, the feature shall raise `LockTimeoutError` with exit code `3`.
 - If the lock file cannot be opened, the feature shall raise `MemoryHelperError` with exit code `1`.
 
@@ -179,6 +180,7 @@ The feature shall merge a run specification into the memory markdown file under 
 | Spec is empty or not a dict | Call `update({})` | `SpecError` is raised with exit code `4` |
 | Another process holds the lock for more than 30 seconds | Call `update(spec)` | `LockTimeoutError` is raised with exit code `3` |
 | Spec `run.workflow` is not a string | Call `update(spec)` | `SpecError` is raised with exit code `4` |
+| Spec `run.description` lacks a recognised prefix | Call `update(spec)` | `SpecError` is raised with exit code `4`; message names the accepted prefixes |
 
 #### Metric
 | Target Metric | Value |

@@ -34,8 +34,10 @@ def _git_executable() -> str:
 
 
 def bootstrap_ns_roots() -> None:
-    """Ensure every module's ``src/`` is on ``sys.path`` so bare intra-module
-    imports (``from shared.src...``, ``from cli.src...``) resolve.
+    """Ensure every module's ``src/`` AND its parent package root are on
+    ``sys.path`` so both bare intra-module imports
+    (``from shared.src...``, ``from cli.src...``) and test-worker imports
+    (``from memory.src.capabilities_memory_writer import ...``) resolve.
 
     Called once at CLI entry before any module import that uses bare
     sibling imports. Idempotent and safe to call repeatedly.
@@ -44,14 +46,17 @@ def bootstrap_ns_roots() -> None:
     tools_root = modules_root.parent
     if str(tools_root) not in sys.path:
         sys.path.append(str(tools_root))
+    if str(modules_root) not in sys.path:
+        sys.path.append(str(modules_root))
     for _m in ("shared", "cli", "planner", "memory", "host"):
-        _src = modules_root / _m / "src"
+        _pkg = modules_root / _m
+        if str(_pkg) not in sys.path:
+            sys.path.append(str(_pkg))
+        _src = _pkg / "src"
         if _src.is_dir():
             _p = str(_src)
             if _p not in sys.path:
                 sys.path.append(_p)
-    if str(modules_root) not in sys.path:
-        sys.path.append(str(modules_root))
 
 
 def resolve_python() -> str:

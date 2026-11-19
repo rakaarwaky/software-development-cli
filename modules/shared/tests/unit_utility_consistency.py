@@ -12,17 +12,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-# ─── Bootstrap sys.path (mirrors modules/root_sdc_entry.py) ─────────────
-_MODULES_ROOT = Path(__file__).resolve().parents[3]
-for _m in ("shared", "cli", "planner", "memory"):
-    _src = _MODULES_ROOT / _m / "src"
-    if _src.is_dir():
-        _p = str(_src)
-        if _p not in sys.path:
-            sys.path.insert(0, _p)
-if str(_MODULES_ROOT) not in sys.path:
-    sys.path.insert(0, str(_MODULES_ROOT))
-
+# ─── Bootstrap sys.path via the shared helper ──────────────────────────
 from shared.src.common.utility_sdc_common import bootstrap_ns_roots
 
 bootstrap_ns_roots()

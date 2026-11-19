@@ -15,6 +15,7 @@ from typing import Any
 
 import pytest
 
+from memory.src.capabilities_memory_snapshot import CapabilitiesSnapshot
 from memory.src.capabilities_memory_writer import CapabilitiesWriter
 from shared.src.common.taxonomy_sdc_error import SpecError
 from shared.src.memory.taxonomy_memory_request import MemoryResult
@@ -99,14 +100,76 @@ class TestCapabilitiesWriterLifecycle:
         assert res2.total_patterns == 2
 
 
+class TestCapabilitiesWriterWorkflow:
+    """run.workflow provenance field: rendering, round-trip, validation."""
+
+    def test_workflow_renders_before_rounds(
+        self, isolated_home: Path, git_repo: Path
+    ) -> None:
+        writer = CapabilitiesWriter()
+        res = writer.update(
+            {
+                "run": {
+                    "workflow": "plan",
+                    "description": "plan: retry-logic feature",
+                    "rounds": 2,
+                }
+            }
+        )
+        text = Path(res.file).read_text(encoding="utf-8")
+        assert "- **Workflow**: plan" in text
+        assert text.index("**Workflow**") < text.index("**Rounds**")
+
+    def test_workflow_round_trips_into_snapshot(
+        self, isolated_home: Path, git_repo: Path
+    ) -> None:
+        writer = CapabilitiesWriter()
+        writer.update({"run": {"workflow": "grill", "rounds": 3}})
+        snapshot = CapabilitiesSnapshot().read_snapshot()
+        runs = snapshot.recent_runs
+        assert runs[0]["workflow"] == "grill"
+
+    def test_run_without_workflow_yields_null_snapshot_field(
+        self, isolated_home: Path, git_repo: Path
+    ) -> None:
+        writer = CapabilitiesWriter()
+        writer.update({"run": {"rounds": 1}})
+        snapshot = CapabilitiesSnapshot().read_snapshot()
+        assert snapshot.recent_runs[0]["workflow"] is None
+
+    def test_non_string_workflow_raises_spec_error(
+        self, isolated_home: Path, git_repo: Path
+    ) -> None:
+        writer = CapabilitiesWriter()
+        with pytest.raises(SpecError) as exc_info:
+            writer.update({"run": {"workflow": 3}})
+        assert exc_info.value.exit_code == 4
+        assert '"run.workflow" must be a string' in str(exc_info.value)
+
+    def test_empty_string_workflow_is_skipped(
+        self, isolated_home: Path, git_repo: Path
+    ) -> None:
+        writer = CapabilitiesWriter()
+        res = writer.update({"run": {"workflow": "  ", "rounds": 1}})
+        text = Path(res.file).read_text(encoding="utf-8")
+        assert "**Workflow**" not in text
+
+
 def _concurrent_worker(spec: dict, home_dir: str, repo_dir: str) -> None:
     """Worker function for concurrency test running in separate process."""
     import os
+    import sys
     from pathlib import Path
-    from memory.src.capabilities_memory_writer import CapabilitiesWriter
 
     os.environ["HOME"] = home_dir
     os.chdir(repo_dir)
+    # The forkserver does not inherit the parent's sys.path mutations, so
+    # re-bootstrap the module roots before importing memory.src.*.
+    from shared.src.common.utility_sdc_common import bootstrap_ns_roots
+
+    bootstrap_ns_roots()
+    from memory.src.capabilities_memory_writer import CapabilitiesWriter
+
     writer = CapabilitiesWriter()
     writer.update(spec)
 

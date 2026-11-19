@@ -9,7 +9,7 @@
 [Capabilities*] --> [IMemory*Protocol] (contract)
 ```
 
-The **Memory Store** feature manages workspace-scoped review pattern memory files for the `sdc` toolchain. It resolves a deterministic per-repository memory path, reads and parses the markdown file into a structured snapshot, and merges new run patterns or issue entries under an exclusive file lock with atomic writes. The feature exposes four caller-observable actions: `path`, `read`, `snapshot`, and `update`.
+The **Memory Store** feature manages workspace-scoped review pattern memory files for the `sdc` toolchain. It resolves a deterministic per-repository memory path, reads and parses the markdown file into a structured snapshot, returns top-N issue patterns read-only, and merges new run patterns or issue entries under an exclusive file lock with atomic writes. The feature exposes five caller-observable actions: `path`, `read`, `snapshot`, `top`, and `update`.
 
 ## Functional Requirements
 
@@ -102,7 +102,8 @@ The feature shall parse the memory markdown file into a structured JSON snapshot
 
 #### Business Logic
 - The feature shall parse the markdown file into three sections: header lines, common issues (grouped by category), and recent runs (with date, description, and body lines).
-- The snapshot payload shall contain `common_issues` as a flat list of `{category, description, count}` objects, `recent_runs` as a list of `{date, description, body_lines}` objects, and `exists` as a boolean.
+- The snapshot payload shall contain `common_issues` as a flat list of `{category, description, count}` objects, `recent_runs` as a list of `{date, description, workflow, body_lines}` objects, and `exists` as a boolean.
+- The `workflow` field of a recent run shall hold the value recorded in the run's `- **Workflow**: <value>` body line, or `null` when no such line is present.
 - When the memory file does not exist, `common_issues` shall be an empty list, `recent_runs` shall be an empty list, and `exists` shall be `false`.
 - Category matching during parse shall be case-insensitive and whitespace-normalised.
 - Issue descriptions shall be matched for dedup using lowercase, trailing-punctuation-stripped, whitespace-collapsed normalisation.
@@ -143,7 +144,8 @@ The feature shall merge a run specification into the memory markdown file under 
 
 #### Business Logic
 - The feature shall acquire an exclusive `flock` on the lock file before reading the existing memory file, with a timeout of 30 seconds and a poll interval of 0.2 seconds.
-- The input spec shall be a JSON object with optional `patterns` (list of `{category, description}` objects) and optional `run` (object with `date`, `description`, `rounds`, `issues_by_severity`, `key_patterns`, `specializations`).
+- The input spec shall be a JSON object with optional `patterns` (list of `{category, description}` objects) and optional `run` (object with `date`, `description`, `rounds`, `issues_by_severity`, `key_patterns`, `specializations`, and `workflow`).
+- The `workflow` field (when present) shall be a string recording the originating skill/workflow (`impl`, `exec`, `plan`, or `grill`); when the value sanitizes to a non-empty string, it shall be rendered as a `- **Workflow**: <value>` body line, emitted first in the run's body lines; empty or whitespace-only values shall be skipped without error.
 - When a pattern description matches an existing entry (case-insensitive, punctuation-stripped, whitespace-collapsed), the feature shall increment its count rather than appending a duplicate.
 - When the number of patterns in a category exceeds `MAX_PATTERNS_PER_CATEGORY` (25), the feature shall sort by descending count then ascending description and truncate the lowest-count entries.
 - When the number of recent runs exceeds `MAX_RECENT_RUNS` (20), the feature shall drop the oldest entries.
@@ -178,6 +180,7 @@ The feature shall merge a run specification into the memory markdown file under 
 | More than 20 recent runs after merge | Call `update(spec)` | Oldest runs are dropped; `stats.recent_runs_dropped` records the count |
 | Spec is empty or not a dict | Call `update({})` | `SpecError` is raised with exit code `4` |
 | Another process holds the lock for more than 30 seconds | Call `update(spec)` | `LockTimeoutError` is raised with exit code `3` |
+| Spec `run.workflow` is not a string | Call `update(spec)` | `SpecError` is raised with exit code `4` |
 
 #### Metric
 | Target Metric | Value |
@@ -186,6 +189,48 @@ The feature shall merge a run specification into the memory markdown file under 
 | Dedup correctness | 0 duplicate entries after merge |
 | Atomic write success rate | 100% |
 | Lock timeout accuracy | 100% (raises within 30s ± 0.2s) |
+
+### FR-MEM-005: Top-N patterns
+
+**Description:**
+The feature shall return the top-N common issue patterns of the memory file as a read-only query, without acquiring the exclusive write lock. The result shall be a JSON-ready payload of `{"patterns": [...], "total": T, "exists": bool}`.
+
+#### Business Logic
+- The feature shall read the memory file (no lock — same posture as `read`/`snapshot`) and flatten `common_issues` into `{category, description, count}` objects.
+- The result list shall be sorted by count descending, then description ascending (case-insensitive), and truncated to N entries.
+- When a category filter is provided, entries shall be restricted to that category using case- and whitespace-insensitive matching; an unknown category shall yield an empty list.
+- `total` shall count the patterns after the category filter (before the N truncation).
+- When the memory file does not exist, the feature shall return `patterns: []`, `total: 0`, and `exists: false` without error.
+- N shall be a positive integer enforced at the CLI surface; N larger than the pattern count returns all patterns.
+
+#### Edge Cases
+- If the memory file does not exist, the result is empty with `exists: false` and exit code `0`.
+- If N is zero or negative at the CLI surface, the feature shall reject the invocation with a usage error (exit code `2`).
+
+#### Technical Specification
+| Aspect | Detail |
+|--------|--------|
+| **Input** | N (positive integer, default 10) and optional category filter; source: CLI `sdc memory top [--n N] [--category NAME]` |
+| **Output** | JSON object `{"patterns": [{category, description, count}], "total": int, "exists": bool}` written to stdout |
+| **Protocol** | `IMemoryTopProtocol` |
+| **Method** | `top(n, category)` |
+| **Event** | none |
+| **Error** | `WorkspaceIdError` when the workspace id cannot be resolved |
+
+#### Test
+| Context | When Action | Then Observable Result |
+|---------|-------------|------------------------|
+| Memory file does not exist | Call `top(10)` | `{"patterns": [], "total": 0, "exists": false}`; exit code `0` |
+| File has patterns across categories | Call `top(2)` | Two entries, sorted count-desc then description-asc; `total` is the full count |
+| Category filter given | Call `top(10, "testing")` | Only that category's entries, count-desc; matching is case-insensitive |
+| N exceeds pattern count | Call `top(100)` | All patterns returned; `total` equals the returned count |
+| `--n 0` at CLI | Call `sdc memory top --n 0` | Usage error on stderr, exit code `2` |
+
+#### Metric
+| Target Metric | Value |
+|---------------|-------|
+| Top latency (p95, no contention) | < 50ms |
+| Sort fidelity (count desc, description asc) | 100% |
 
 ## Public Interface
 

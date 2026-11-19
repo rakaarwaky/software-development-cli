@@ -10,11 +10,17 @@ Verifies that memory capabilities implement their protocol interfaces:
 
 from __future__ import annotations
 
+from memory.src.capabilities_memory_path import CapabilitiesPath
+from memory.src.capabilities_memory_reader import CapabilitiesReader
+from memory.src.capabilities_memory_snapshot import CapabilitiesSnapshot
+from memory.src.capabilities_memory_top import CapabilitiesTop
+from memory.src.capabilities_memory_writer import CapabilitiesWriter
 from shared.src.memory.contract_memory_aggregate import IMemoryAggregate
 from shared.src.memory.contract_memory_protocol import (
     IMemoryPathProtocol,
     IMemoryReaderProtocol,
     IMemorySnapshotProtocol,
+    IMemoryTopProtocol,
     IMemoryWriterProtocol,
 )
 
@@ -74,17 +80,26 @@ class TestIMemoryWriterProtocol:
     """IMemoryWriterProtocol contract: update method exists."""
 
     def test_capabilities_writer_implements_protocol(self) -> None:
-        from memory.src.capabilities_memory_writer import CapabilitiesWriter
-
         cap = CapabilitiesWriter()
         assert isinstance(cap, IMemoryWriterProtocol)
 
     def test_capabilities_writer_has_update_method(self) -> None:
-        from memory.src.capabilities_memory_writer import CapabilitiesWriter
-
         cap = CapabilitiesWriter()
         assert hasattr(cap, "update")
         assert callable(cap.update)
+
+
+class TestIMemoryTopProtocol:
+    """IMemoryTopProtocol contract: top method exists."""
+
+    def test_capabilities_top_implements_protocol(self) -> None:
+        cap = CapabilitiesTop()
+        assert isinstance(cap, IMemoryTopProtocol)
+
+    def test_capabilities_top_has_top_method(self) -> None:
+        cap = CapabilitiesTop()
+        assert hasattr(cap, "top")
+        assert callable(cap.top)
 
 
 class TestIMemoryAggregate:
@@ -92,31 +107,25 @@ class TestIMemoryAggregate:
 
     def test_agent_memory_implements_aggregate(self) -> None:
         from memory.src.agent_memory_orchestrator import AgentMemory
-        from memory.src.capabilities_memory_path import CapabilitiesPath
-        from memory.src.capabilities_memory_reader import CapabilitiesReader
-        from memory.src.capabilities_memory_snapshot import CapabilitiesSnapshot
-        from memory.src.capabilities_memory_writer import CapabilitiesWriter
 
         agent = AgentMemory(
             path_cap=CapabilitiesPath(),
             reader_cap=CapabilitiesReader(),
             snapshot_cap=CapabilitiesSnapshot(),
             writer_cap=CapabilitiesWriter(),
+            top_cap=CapabilitiesTop(),
         )
         assert isinstance(agent, IMemoryAggregate)
 
     def test_agent_memory_has_execute_method(self) -> None:
         from memory.src.agent_memory_orchestrator import AgentMemory
-        from memory.src.capabilities_memory_path import CapabilitiesPath
-        from memory.src.capabilities_memory_reader import CapabilitiesReader
-        from memory.src.capabilities_memory_snapshot import CapabilitiesSnapshot
-        from memory.src.capabilities_memory_writer import CapabilitiesWriter
 
         agent = AgentMemory(
             path_cap=CapabilitiesPath(),
             reader_cap=CapabilitiesReader(),
             snapshot_cap=CapabilitiesSnapshot(),
             writer_cap=CapabilitiesWriter(),
+            top_cap=CapabilitiesTop(),
         )
         assert hasattr(agent, "execute")
         assert callable(agent.execute)

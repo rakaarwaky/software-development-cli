@@ -26,9 +26,9 @@ class TestCapabilitiesSnapshot:
         snapshot = CapabilitiesSnapshot()
         payload = snapshot.read_snapshot()
 
-        assert payload["exists"] is False
-        assert payload["common_issues"] == []
-        assert payload["recent_runs"] == []
+        assert payload.exists is False
+        assert payload.common_issues == []
+        assert payload.recent_runs == []
 
     def test_existing_file_returns_parsed_payload(
         self, isolated_home: Path, git_repo: Path
@@ -49,13 +49,14 @@ class TestCapabilitiesSnapshot:
         snapshot = CapabilitiesSnapshot()
         payload = snapshot.read_snapshot()
 
-        assert payload["exists"] is True
-        assert len(payload["common_issues"]) == 1
-        assert payload["common_issues"][0]["category"] == "Architecture"
-        assert payload["common_issues"][0]["description"] == "violated boundary"
-        assert payload["common_issues"][0]["count"] == 2
-        assert len(payload["recent_runs"]) == 1
-        assert payload["recent_runs"][0]["date"] == "2026-11-18"
+        assert payload.exists is True
+        assert len(payload.common_issues) == 1
+        assert payload.common_issues[0]["category"] == "Architecture"
+        assert payload.common_issues[0]["description"] == "violated boundary"
+        assert payload.common_issues[0]["count"] == 2
+        assert len(payload.recent_runs) == 1
+        assert payload.recent_runs[0]["date"] == "2026-11-18"
+        assert payload.recent_runs[0]["workflow"] is None
 
     def test_permission_error_propagates(
         self, isolated_home: Path, git_repo: Path

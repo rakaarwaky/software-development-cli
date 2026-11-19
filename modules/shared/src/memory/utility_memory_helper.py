@@ -39,6 +39,7 @@ from shared.src.common.taxonomy_sdc_constant import (
     SSH_REMOTE_RE,
     URL_REMOTE_RE,
     WHITESPACE_RE,
+    WORKFLOW_LINE_RE,
 )
 from shared.src.common.taxonomy_sdc_error import (
     HostError,
@@ -491,6 +492,14 @@ def merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[str
 
     body_lines: list[str] = []
 
+    wf_raw = run.get("workflow")
+    if wf_raw is not None:
+        if not isinstance(wf_raw, str):
+            raise SpecError('"run.workflow" must be a string')
+        workflow = _sanitize_one_line(wf_raw)
+        if workflow:
+            body_lines.append(f"- **Workflow**: {workflow}")
+
     rounds_raw = run.get("rounds")
     if rounds_raw is not None:
         if isinstance(rounds_raw, bool) or not isinstance(rounds_raw, int):
@@ -547,6 +556,40 @@ def merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[str
     if len(state["recent_runs"]) > MAX_RECENT_RUNS:
         stats["recent_runs_dropped"] = len(state["recent_runs"]) - MAX_RECENT_RUNS
         del state["recent_runs"][MAX_RECENT_RUNS:]
+
+
+def top_patterns(
+    state: dict[str, Any],
+    *,
+    n: int = 10,
+    category: str | None = None,
+) -> tuple[list[dict[str, Any]], int]:
+    """Return the top ``n`` common-issue patterns and the filtered total.
+
+    Entries are ``{category, description, count}`` dicts sorted by
+    count descending, then description ascending (case-insensitive).
+    ``category`` (when given) restricts the result to one category using
+    case/whitespace-insensitive matching; an unknown category yields an
+    empty list.
+    """
+    flat: list[dict[str, Any]] = [
+        {
+            "category": cat,
+            "description": e["description"],
+            "count": e["count"],
+        }
+        for cat, entries in state["common_issues"].items()
+        for e in entries
+    ]
+    if category:
+        key = WHITESPACE_RE.sub(" ", category).strip().lower()
+        flat = [
+            p
+            for p in flat
+            if WHITESPACE_RE.sub(" ", p["category"]).strip().lower() == key
+        ]
+    flat.sort(key=lambda p: (-p["count"], p["description"].lower()))
+    return flat[: max(n, 0)], len(flat)
 
 
 def atomic_write(path: Path, content: str) -> None:
@@ -621,6 +664,15 @@ def release_lock(fd: int) -> None:
         pass
 
 
+def _extract_workflow(body_lines: list[str]) -> str | None:
+    """Return the workflow recorded in a run's body lines, or None."""
+    for line in body_lines:
+        m = WORKFLOW_LINE_RE.match(line)
+        if m:
+            return m.group(1).strip()
+    return None
+
+
 def build_snapshot_payload(state: dict[str, Any], *, exists: bool) -> dict[str, Any]:
     """Build JSON snapshot dict from parsed state."""
     return {
@@ -637,6 +689,7 @@ def build_snapshot_payload(state: dict[str, Any], *, exists: bool) -> dict[str, 
             {
                 "date": r["date"],
                 "description": r["description"],
+                "workflow": _extract_workflow(r.get("body_lines") or []),
                 "body_lines": r["body_lines"],
             }
             for r in state["recent_runs"]

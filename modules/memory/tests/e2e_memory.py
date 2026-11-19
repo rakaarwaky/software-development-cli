@@ -13,6 +13,7 @@ from memory.src.agent_memory_orchestrator import AgentMemory
 from memory.src.capabilities_memory_path import CapabilitiesPath
 from memory.src.capabilities_memory_reader import CapabilitiesReader
 from memory.src.capabilities_memory_snapshot import CapabilitiesSnapshot
+from memory.src.capabilities_memory_top import CapabilitiesTop
 from memory.src.capabilities_memory_writer import CapabilitiesWriter
 from shared.src.memory.taxonomy_memory_request import MemoryRequest
 
@@ -23,6 +24,7 @@ def _make_orchestrator() -> AgentMemory:
         reader_cap=CapabilitiesReader(),
         snapshot_cap=CapabilitiesSnapshot(),
         writer_cap=CapabilitiesWriter(),
+        top_cap=CapabilitiesTop(),
     )
 
 

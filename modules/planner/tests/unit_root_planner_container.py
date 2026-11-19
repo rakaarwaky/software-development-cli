@@ -4,13 +4,9 @@ import sys
 import unittest
 from pathlib import Path
 
-_MODULES_ROOT = Path(__file__).resolve().parents[3]
-for _m in ("shared", "cli", "planner", "memory", "host"):
-    _src = _MODULES_ROOT / "modules" / _m / "src"
-    if _src.is_dir() and str(_src) not in sys.path:
-        sys.path.insert(0, str(_src))
-if str(_MODULES_ROOT / "modules") not in sys.path:
-    sys.path.insert(0, str(_MODULES_ROOT / "modules"))
+from shared.src.common.utility_sdc_common import bootstrap_ns_roots
+
+bootstrap_ns_roots()
 
 from parameterized import parameterized
 
@@ -19,6 +15,7 @@ from modules.planner.src.capabilities_compute_execution import CapabilitiesCompu
 from modules.planner.src.capabilities_parse_pr_plan import CapabilitiesParsePrPlan
 from modules.planner.src.capabilities_validate_dag import CapabilitiesValidateDag
 from modules.planner.src.root_planner_container import PlannerContainer, create_planner_feature
+from shared.src.common.taxonomy_sdc_error import PlanUsageError
 from shared.src.planner.contract_planner_aggregate import IPlanAggregate
 from shared.src.planner.contract_planner_protocol import (
     IPlanComputeProtocol,
@@ -54,17 +51,17 @@ class TestPlannerContainer(unittest.TestCase):
         self.assertIsInstance(feature._computer, IPlanComputeProtocol)
 
     @parameterized.expand([
-        ("first", "validate", "nonexistent.md", 0),
-        ("second", "validate", "nonexistent.md", 0),
+        ("first", "validate", "nonexistent.md"),
+        ("second", "validate", "nonexistent.md"),
     ])
-    def test_container_dispatch_returns_int(
-        self, _case: str, action: str, path: str, expected_rc: int,
+    def test_container_dispatch_raises_usage_error_for_missing_file(
+        self, _case: str, action: str, path: str,
     ) -> None:
         from shared.src.planner.taxonomy_planner_request import PlanRequest
-        result = self.container.aggregate.execute(
-            PlanRequest(action=action, path=path),
-        )
-        self.assertIsInstance(result, PlanResult)
+        with self.assertRaises(PlanUsageError):
+            self.container.aggregate.execute(
+                PlanRequest(action=action, path=path),
+            )
 
 
 if __name__ == "__main__":

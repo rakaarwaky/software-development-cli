@@ -60,7 +60,7 @@ def _build_parser() -> argparse.ArgumentParser:
     host_cleanup = host_sub.add_parser("cleanup", help="Unlink files; missing paths are ok.")
     host_cleanup.add_argument("paths", nargs="+", help="Files to unlink.")
 
-    # sdc memory <path|read|snapshot|update>
+    # sdc memory <path|read|snapshot|update|top>
     mem = sub.add_parser("memory", help="Workspace-scoped memory file manager.")
     mem_sub = mem.add_subparsers(dest="memory_cmd", required=True, metavar="<command>")
     mem_sub.add_parser("path", help="Print the memory file path for this workspace.")
@@ -73,6 +73,20 @@ def _build_parser() -> argparse.ArgumentParser:
     mem_update.add_argument(
         "--file",
         help="Read the JSON spec from this path instead of stdin.",
+    )
+    mem_top = mem_sub.add_parser(
+        "top",
+        help="Print the top N common issue patterns as JSON (read-only).",
+    )
+    mem_top.add_argument(
+        "--n",
+        type=_positive_int,
+        default=10,
+        help="Number of top patterns to return (default: 10).",
+    )
+    mem_top.add_argument(
+        "--category",
+        help="Restrict to this category (case-insensitive).",
     )
 
     # sdc validate-plan <plan-doc-path>
@@ -101,6 +115,17 @@ def _normalize_subdir(subdir: str) -> str:
     any other value (already canonical) is returned unchanged.
     """
     return _SUBDIR_ALIASES.get(subdir, subdir)
+
+
+def _positive_int(value: str) -> int:
+    """argparse type for ``--n``: a positive integer (usage error otherwise)."""
+    try:
+        n = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"invalid int value: {value!r}")
+    if n < 1:
+        raise argparse.ArgumentTypeError("--n must be a positive integer")
+    return n
 
 
 def _dispatch_host(args: argparse.Namespace) -> int:
@@ -142,6 +167,21 @@ def _dispatch_memory(args: argparse.Namespace) -> int:
     if args.memory_cmd == "snapshot":
         result = _call_memory(MemoryRequest(action="snapshot"))
         json.dump(result.snapshot, sys.stdout, indent=2)
+        sys.stdout.write("\n")
+        return 0
+    if args.memory_cmd == "top":
+        result = _call_memory(
+            MemoryRequest(action="top", n=args.n, category=args.category or "")
+        )
+        json.dump(
+            {
+                "patterns": result.top_patterns,
+                "total": result.top_total,
+                "exists": result.top_exists,
+            },
+            sys.stdout,
+            indent=2,
+        )
         sys.stdout.write("\n")
         return 0
     if args.memory_cmd == "update":
@@ -294,7 +334,6 @@ def cmd_sdc(argv: list[str]) -> int:
         return getattr(exc, "exit_code", 1)
     except KeyboardInterrupt:
         raise
-    except Exception as exc:  # pragma: no cover — defensive catch-all
-        import traceback
-        traceback.print_exc(file=sys.stderr)
+    except (ValueError, KeyError, TypeError) as exc:
+        print(f"sdc: unexpected error: {exc}", file=sys.stderr)
         return 1

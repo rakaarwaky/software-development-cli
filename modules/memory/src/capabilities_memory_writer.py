@@ -6,6 +6,8 @@ under exclusive flock, rendering the new markdown atomically.
 
 from __future__ import annotations
 
+from typing import Any
+
 from shared.src.common.taxonomy_sdc_error import SpecError
 from shared.src.memory.contract_memory_protocol import IMemoryWriterProtocol
 from shared.src.memory.taxonomy_memory_request import MemoryResult, UpdateSpec
@@ -30,7 +32,9 @@ class CapabilitiesWriter(IMemoryWriterProtocol):
 
     # ─── Block 2: Module Contract ──────────────────────────────────────
 
-    def update(self, spec: UpdateSpec) -> MemoryResult:
+    def update(self, spec: Any) -> MemoryResult:
+        if isinstance(spec, dict):
+            spec = UpdateSpec(data=spec)
         if not isinstance(spec, UpdateSpec) or not spec.data:
             raise SpecError("update requires a non-empty spec dict")
 

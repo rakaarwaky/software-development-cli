@@ -1,17 +1,23 @@
 """Memory-domain capability contracts (AES102 `_protocol`).
 
-One file for the memory feature declaring 4 rich capability seams:
+One file for the memory feature declaring 5 rich capability seams:
 - IMemoryPathProtocol: resolves file/lock paths for the current repo
 - IMemoryReaderProtocol: reads raw markdown content of the memory file
 - IMemorySnapshotProtocol: parses and returns structured snapshot data
 - IMemoryWriterProtocol: merges run patterns/specs under exclusive lock
+- IMemoryTopProtocol: returns the top-N common issue patterns (read-only)
 """
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from shared.src.common.taxonomy_sdc_vo import MemoryContent, RepoPaths
+from shared.src.common.taxonomy_sdc_vo import (
+    MemoryContent,
+    PatternCategory,
+    PatternCount,
+    RepoPaths,
+)
 from shared.src.memory.taxonomy_memory_request import (
     MemoryResult,
     MemorySnapshot,
@@ -55,10 +61,22 @@ class IMemoryWriterProtocol(ABC):
         ...
 
 
+class IMemoryTopProtocol(ABC):
+    """Read-only top-N patterns capability seam for the memory file."""
+
+    @abstractmethod
+    def top(
+        self, n: PatternCount, category: PatternCategory | None = None
+    ) -> MemoryResult:
+        """Return the top-N common issue patterns (optionally filtered by category)."""
+        ...
+
+
 __all__ = [
     "IMemoryPathProtocol",
     "IMemoryReaderProtocol",
     "IMemorySnapshotProtocol",
+    "IMemoryTopProtocol",
     "IMemoryWriterProtocol",
 ]
 
@@ -67,4 +85,5 @@ _layer_symbols = {
     "IMemoryReaderProtocol": IMemoryReaderProtocol,
     "IMemorySnapshotProtocol": IMemorySnapshotProtocol,
     "IMemoryWriterProtocol": IMemoryWriterProtocol,
+    "IMemoryTopProtocol": IMemoryTopProtocol,
 }

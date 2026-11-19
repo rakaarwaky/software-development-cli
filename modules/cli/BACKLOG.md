@@ -10,7 +10,7 @@ The `sdc` surface is implemented: stdlib-only argument parsing with host, memory
 |----|--------|-------------|----------|
 | BL-CLI-001 | Done | `sdc host setup --subdir implement\|plan\|execute` (skill-name aliases `planner`, `execute-plan` accepted) | P0 |
 | BL-CLI-002 | Done | `sdc host cleanup <paths...>` (positional, missing paths skipped) | P0 |
-| BL-CLI-003 | Done | `sdc memory path\|read\|snapshot\|update` | P0 |
+| BL-CLI-003 | Done | `sdc memory path\|read\|snapshot\|update\|top` | P0 |
 | BL-CLI-004 | Done | `sdc validate-plan <plan-file>` | P1 |
 | BL-CLI-005 | Done | Exit codes 0/1/2/3/4 with stderr messages | P0 |
 | BL-CLI-006 | Done | Capabilities injected via `set_capabilities` from the root entry | P0 |
@@ -40,7 +40,7 @@ The `sdc` surface is implemented: stdlib-only argument parsing with host, memory
 | Aspect       | Detail                                       |
 |--------------|----------------------------------------------|
 | State        | Done                                         |
-| Done         | `sdc memory path|read|snapshot|update` implemented |
+| Done         | `sdc memory path|read|snapshot|update|top` implemented |
 | In Progress  | None                                         |
 | Risk         | None                                         |
 | Updated      | 2026-11-18                                   |

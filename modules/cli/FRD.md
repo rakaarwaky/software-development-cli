@@ -86,23 +86,26 @@ contract aggregates, and renders JSON output to stdout.
 
 ### FR-CLI-003: Memory Subcommand
 
-**Description:** Manage per-repo memory files: resolve path, read content, snapshot state, or update under exclusive lock.
+**Description:** Manage per-repo memory files: resolve path, read content, snapshot state, read top-N patterns, or update under exclusive lock.
 
 #### Business Logic
-- Resolve `~/.agents/develop/<slug>/memory/<workspace-id>.md` for path/read/snapshot/update.
+- Resolve `~/.agents/develop/<slug>/memory/<workspace-id>.md` for path/read/snapshot/top/update.
 - Return empty string for missing memory file on read; exit 0.
 - Parse memory markdown into structured JSON snapshot with dedup and category caps.
+- Return the top-N common issue patterns (count-desc, optional category filter) as JSON via `top`; never raises on a missing file.
 - Merge run specs under exclusive flock (30s/0.2s) with atomic write at mode `0o600`.
 
 #### Edge Cases
 - Missing memory file returns empty content for read/snapshot with `exists: false`.
+- Memory top returns count-desc patterns (or empty result) and exits 0.
+- `top` rejects `--n < 1` with usage exit code 2.
 - Lock acquisition timeout raises `LockTimeoutError` with exit code 3.
 - Malformed JSON on stdin raises `SpecError` with exit code 4.
 
 #### Technical Specification
 | Aspect | Detail |
 |--------|--------|
-| **Input** | `sdc memory <path|read|snapshot|update> [flags]` |
+| **Input** | `sdc memory <path|read|snapshot|update|top> [flags]` |
 | **Output** | JSON or plain text depending on subcommand |
 | **Protocol** | `IMemoryAggregate` |
 | **Method** | `MemoryStore.execute(MemoryRequest) → MemoryResult` |
@@ -116,6 +119,8 @@ contract aggregates, and renders JSON output to stdout.
 | Memory file missing | `sdc memory read` | Empty output, exit 0 |
 | Update with valid JSON spec | `sdc memory update` | Merged spec, stats returned, exit 0 |
 | Lock timeout | `sdc memory update` | Error to stderr, exit code 3 |
+| Top patterns with N | `sdc memory top --n 5` | JSON `{"patterns": [...], "total": T, "exists": bool}`, exit 0 |
+| Top patterns missing file | `sdc memory top` | JSON with `patterns: []`, `total: 0`, `exists: false`, exit 0 |
 
 #### Metric
 | Target Metric | Value |

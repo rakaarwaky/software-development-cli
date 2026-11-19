@@ -14,17 +14,7 @@ import sys
 from io import StringIO
 from pathlib import Path
 
-# ─── Bootstrap sys.path (mirrors modules/root_sdc_entry.py) ─────────────
-_MODULES_ROOT = Path(__file__).resolve().parents[3]
-for _m in ("shared", "cli", "planner", "memory", "host"):
-    _src = _MODULES_ROOT / "modules" / _m / "src"
-    if _src.is_dir():
-        _p = str(_src)
-        if _p not in sys.path:
-            sys.path.insert(0, _p)
-if str(_MODULES_ROOT / "modules") not in sys.path:
-    sys.path.insert(0, str(_MODULES_ROOT / "modules"))
-
+# ─── Bootstrap sys.path via the shared helper ──────────────────────────
 from shared.src.common.utility_sdc_common import bootstrap_ns_roots
 
 bootstrap_ns_roots()
@@ -322,7 +312,7 @@ def test_set_and_reset_capabilities_isolated():
 
 # ── unexpected error path ───────────────────────────────────────────────
 
-def test_unexpected_error_prints_traceback_exits_one():
+def test_unexpected_error_prints_error_exits_one():
     cap = MagicMock()
     cap.dispatch.side_effect = TypeError("boom")
     _wire(cap_host=cap)
@@ -335,10 +325,7 @@ def test_unexpected_error_prints_traceback_exits_one():
     finally:
         sys.stdout, sys.stderr = old_out, old_err
     assert code == 1
-    assert "TypeError" in err.getvalue()
     assert "boom" in err.getvalue()
-    assert "Traceback" in err.getvalue()
-    assert "Traceback" in err.getvalue()
 
 
 # ── new behavior contracts ──────────────────────────────────────────────
@@ -443,3 +430,68 @@ def test_host_setup_json_is_indented():
     assert data == {"python": "/usr/bin/python3", "scratch_dir": "/tmp/scratch", "run_id": "abc12345"}
     # indent=2 produces multi-line output
     assert out.getvalue().count("\n") >= 2
+
+
+# ── memory top ───────────────────────────────────────────────────────────
+
+def _run_top(argv, result):
+    cap = MagicMock()
+    cap.execute.return_value = result
+    _wire(cap_memory=cap)
+    cap2 = MagicMock()
+    out = StringIO()
+    err = StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = out, err
+    try:
+        code = cmd_sdc(argv)
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+    return code, json.loads(out.getvalue()), err.getvalue(), cap
+
+
+def test_memory_top_prints_json():
+    res = MemoryResult(
+        top_patterns=[{"category": "Testing", "description": "p", "count": 3}],
+        top_total=7,
+        top_exists=True,
+    )
+    code, data, err, cap = _run_top(["memory", "top"], res)
+    assert code == 0
+    assert data == {
+        "patterns": [{"category": "Testing", "description": "p", "count": 3}],
+        "total": 7,
+        "exists": True,
+    }
+    assert err == ""
+    req = cap.execute.call_args[0][0]
+    assert req.action == "top"
+    assert req.n == 10
+    assert req.category == ""
+
+
+def test_memory_top_n_and_category_flags():
+    res = MemoryResult(top_patterns=[], top_total=0, top_exists=False)
+    code, data, _, cap = _run_top(
+        ["memory", "top", "--n", "5", "--category", "Planning"], res
+    )
+    assert code == 0
+    req = cap.execute.call_args[0][0]
+    assert req.n == 5
+    assert req.category == "Planning"
+
+
+def test_memory_top_invalid_n_exits_two():
+    out = StringIO()
+    err = StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = out, err
+    try:
+        try:
+            cmd_sdc(["memory", "top", "--n", "0"])
+            assert False, "expected SystemExit"
+        except SystemExit as exc_info:
+            assert exc_info.code == 2
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+    assert "--n must be a positive integer" in err.getvalue()

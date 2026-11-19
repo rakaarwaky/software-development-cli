@@ -113,14 +113,6 @@ def _strip_fenced_code_blocks(content: str) -> str:
     return re.sub(r"^[ \t]*~~~[^\n]*\n.*?^[ \t]*~~~[ \t]*$", "", content, flags=flags)
 
 
-def _slugify_title(title: str) -> str:
-    """Return a conservative branch-name slug for a PR title."""
-    slug = re.sub(r"[^a-zA-Z0-9]+", "-", title.lower()).strip("-")
-    slug = re.sub(r"-{2,}", "-", slug)[:50].rstrip("-")
-    slug = slug.removesuffix(".lock")
-    return slug or "unnamed"
-
-
 def _extract_field(body: str, field_name: str) -> str | None:
     """Return the value of a ``- **FieldName:** value`` bullet, or None."""
     escaped = re.escape(field_name)

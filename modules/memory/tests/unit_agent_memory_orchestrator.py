@@ -9,22 +9,31 @@ Covers:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import pytest
 
 from memory.src.agent_memory_orchestrator import AgentMemory
 from shared.src.common.taxonomy_sdc_error import SpecError
-from shared.src.memory.taxonomy_memory_request import MemoryRequest, MemoryResult
+from shared.src.common.taxonomy_sdc_vo import (
+    PatternCategory,
+    PatternCount,
+    RepoPaths,
+    WorkspaceId,
+)
+from shared.src.memory.taxonomy_memory_request import (
+    MemoryRequest,
+    MemoryResult,
+)
 
 
 class FakePathCap:
-    def resolve_paths(self, *, create_dir: bool = False) -> dict[str, Path]:
-        return {
-            "dir": Path("/tmp/memory"),
-            "file": Path("/tmp/memory/repo.md"),
-            "lock": Path("/tmp/memory/repo.lock"),
-        }
+    def resolve_paths(self, *, create_dir: bool = False) -> RepoPaths:
+        return RepoPaths(
+            dir=Path("/tmp/memory"),
+            file=Path("/tmp/memory/repo.md"),
+            lock=Path("/tmp/memory/repo.lock"),
+            workspace_id=WorkspaceId("test-repo-0123456789ab"),
+        )
 
 
 class FakeReaderCap:
@@ -60,6 +69,21 @@ class FakeWriterCap:
         )
 
 
+class FakeTopCap:
+    def __init__(self) -> None:
+        self.last_call: tuple[PatternCount, PatternCategory | None] | None = None
+
+    def top(
+        self, n: PatternCount, category: PatternCategory | None = None
+    ) -> MemoryResult:
+        self.last_call = (n, category)
+        return MemoryResult(
+            top_patterns=[{"category": "Testing", "description": "x", "count": 2}],
+            top_total=1,
+            top_exists=True,
+        )
+
+
 @pytest.fixture()
 def path_cap() -> FakePathCap:
     return FakePathCap()
@@ -81,17 +105,24 @@ def writer_cap() -> FakeWriterCap:
 
 
 @pytest.fixture()
+def top_cap() -> FakeTopCap:
+    return FakeTopCap()
+
+
+@pytest.fixture()
 def agent(
     path_cap: FakePathCap,
     reader_cap: FakeReaderCap,
     snapshot_cap: FakeSnapshotCap,
     writer_cap: FakeWriterCap,
+    top_cap: FakeTopCap,
 ) -> AgentMemory:
     return AgentMemory(
         path_cap=path_cap,
         reader_cap=reader_cap,
         snapshot_cap=snapshot_cap,
         writer_cap=writer_cap,
+        top_cap=top_cap,
     )
 
 
@@ -117,6 +148,24 @@ class TestAgentMemoryDispatch:
             "exists": True,
         }
 
+    def test_dispatch_top_action(
+        self, agent: AgentMemory, top_cap: FakeTopCap
+    ) -> None:
+        req = MemoryRequest(action="top", n=5, category="Testing")
+        res = agent.execute(req)
+        assert res.top_total == 1
+        assert top_cap.last_call == (
+            PatternCount(5),
+            PatternCategory("Testing"),
+        )
+
+    def test_dispatch_top_empty_category_passes_none(
+        self, agent: AgentMemory, top_cap: FakeTopCap
+    ) -> None:
+        req = MemoryRequest(action="top", n=10, category="")
+        agent.execute(req)
+        assert top_cap.last_call == (PatternCount(10), None)
+
     def test_dispatch_update_action(
         self, agent: AgentMemory, writer_cap: FakeWriterCap
     ) -> None:
@@ -125,7 +174,7 @@ class TestAgentMemoryDispatch:
         res = agent.execute(req)
         assert res.file == "/tmp/memory/repo.md"
         assert res.stats == {"new_patterns": 1}
-        assert writer_cap.last_spec == spec
+        assert writer_cap.last_spec.data == spec
 
     def test_unknown_action_raises_spec_error(self, agent: AgentMemory) -> None:
         req = MemoryRequest(action="invalid_action")
@@ -134,7 +183,7 @@ class TestAgentMemoryDispatch:
 
         assert exc_info.value.exit_code == 4
         assert "memory: unknown action 'invalid_action'" in str(exc_info.value)
-        assert "'path', 'read', 'snapshot', or 'update'" in str(exc_info.value)
+        assert "'path', 'read', 'snapshot', 'top', or 'update'" in str(exc_info.value)
 
     def test_create_factory(
         self,
@@ -142,11 +191,13 @@ class TestAgentMemoryDispatch:
         reader_cap: FakeReaderCap,
         snapshot_cap: FakeSnapshotCap,
         writer_cap: FakeWriterCap,
-    ) -> None:
+        top_cap: FakeTopCap,
+    ) -> AgentMemory:
         ag = AgentMemory.create(
             path_cap=path_cap,
             reader_cap=reader_cap,
             snapshot_cap=snapshot_cap,
             writer_cap=writer_cap,
+            top_cap=top_cap,
         )
         assert isinstance(ag, AgentMemory)

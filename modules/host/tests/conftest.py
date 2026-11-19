@@ -12,13 +12,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-_MODULES_ROOT = Path(__file__).resolve().parents[3]
-for _m in ("shared", "cli", "planner", "memory", "host"):
-    _src = _MODULES_ROOT / "modules" / _m / "src"
-    if _src.is_dir() and str(_src) not in sys.path:
-        sys.path.insert(0, str(_src))
-if str(_MODULES_ROOT / "modules") not in sys.path:
-    sys.path.insert(0, str(_MODULES_ROOT / "modules"))
+from shared.src.common.utility_sdc_common import bootstrap_ns_roots
+
+bootstrap_ns_roots()
 
 import pytest
 
@@ -99,9 +95,18 @@ def git_repo_no_remote(tmp_path, monkeypatch):
 
 @pytest.fixture()
 def not_a_git_repo(tmp_path, monkeypatch):
-    """A plain directory that is NOT a git repository."""
+    """A plain directory that is NOT a git repository.
+
+    ``tmp_path`` lives under the pytest cache, which may itself be inside a
+    parent git repo. ``GIT_CEILING_DIRECTORIES`` prevents git from walking
+    past ``tmp_path``'s parent when resolving the toplevel, so ``repo_slug``
+    correctly raises ``HostError``.
+    """
     plain = tmp_path / "plain"
     plain.mkdir()
+    monkeypatch.setenv(
+        "GIT_CEILING_DIRECTORIES", str(tmp_path.parent)
+    )
     monkeypatch.chdir(plain)
     return plain
 

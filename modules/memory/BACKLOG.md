@@ -41,7 +41,17 @@ The memory helper feature is implemented: per-repo memory under `~/.agents/devel
 | Aspect       | Detail                                      |
 |--------------|---------------------------------------------|
 | State        | Done                                        |
-| Done         | Exclusive `flock` (30s/0.2s) + atomic `tempfile.mkstemp`/`os.replace` write at `0o600`; dedup, category cap 25, recent runs cap 20 |
+| Done         | Exclusive `flock` (30s/0.2s) + atomic `tempfile.mkstemp`/`os.replace` write at `0o600`; dedup, category cap 25, recent runs cap 20; `run.workflow` rendered as `- **Workflow**: <value>` body line |
+| In Progress  | None                                        |
+| Risk         | None                                        |
+| Updated      | 2026-11-18                                  |
+
+### FR-MEM-005: Top-N patterns
+
+| Aspect       | Detail                                      |
+|--------------|---------------------------------------------|
+| State        | Done                                        |
+| Done         | Read-only top-N count-desc patterns, optional case-insensitive category filter; missing file → empty result, exit 0; payload `{"patterns": [...], "total": N, "exists": bool}` |
 | In Progress  | None                                        |
 | Risk         | None                                        |
 | Updated      | 2026-11-18                                  |

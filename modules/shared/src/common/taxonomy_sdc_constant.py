@@ -56,10 +56,10 @@ SEVERITY_ORDER: Final = ("bug", "suggestion", "nit")
 
 #: Default markdown header for a fresh memory file.
 DEFAULT_HEADER: Final = [
-    "# Implementation Review Patterns",
+    "# Workspace Development Patterns",
     "",
-    "> This file is maintained by the /implement skill.",
-    "> It records common issues found during implementation reviews to help avoid them in future runs.",
+    "> This file is maintained by the sdc memory store across /implement, /execute-plan, /planner, and /grill-me runs.",
+    "> It records recurring issue patterns to help avoid them in future runs.",
     "> Shared across all working directories that resolve to the same workspace id.",
 ]
 
@@ -97,6 +97,8 @@ ISSUE_RE: Final = re.compile(r"^-\s+(.+?)\s+\(seen\s+(\d+)\s+times?\)\s*$")
 RUN_RE: Final = re.compile(
     r"^###\s+(\d{4}-\d{2}-\d{2})\s*[\u2014\u2013-]\s*(.+?)\s*$"
 )
+#: A run body line recording the workflow provenance.
+WORKFLOW_LINE_RE: Final = re.compile(r"^- \*\*Workflow\*\*: (.+)$")
 PUNCT_TAIL_RE: Final = re.compile(r"[.;:,!?\s]+$")
 WHITESPACE_RE: Final = re.compile(r"\s+")
 

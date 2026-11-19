@@ -9,14 +9,17 @@ from dataclasses import dataclass, field
 class MemoryRequest:
     """Request dispatched to the memory capability.
 
-    ``action`` is one of ``path``, ``read``, ``snapshot``, ``update``.
-    For ``update``, ``spec`` holds the parsed JSON dict (from stdin or
-    ``--file``).
+    ``action`` is one of ``path``, ``read``, ``snapshot``, ``top``,
+    ``update``. For ``update``, ``spec`` holds the parsed JSON dict (from
+    stdin or ``--file``). For ``top``, ``n`` and ``category`` hold the
+    top-N query parameters.
     """
 
     action: str
     spec: dict = field(default_factory=dict)
     file: str = ""
+    n: int = 10
+    category: str = ""
 
 
 @dataclass(frozen=True)
@@ -42,6 +45,9 @@ class MemoryResult:
     For ``path``: ``path`` holds the memory file path.
     For ``read``: ``content`` holds the file contents (empty if missing).
     For ``snapshot``: ``snapshot`` holds the parsed JSON dict.
+    For ``top``: ``top_patterns`` holds the top-N ``{category,
+    description, count}`` dicts, ``top_total`` the post-filter pattern
+    count, and ``top_exists`` whether the memory file exists.
     For ``update``: ``file``, ``existed_before``, ``stats``, ``totals``.
     """
 
@@ -54,3 +60,6 @@ class MemoryResult:
     total_categories: int = 0
     total_patterns: int = 0
     total_recent_runs: int = 0
+    top_patterns: list = field(default_factory=list)
+    top_total: int = 0
+    top_exists: bool = False

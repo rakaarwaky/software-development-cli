@@ -41,7 +41,7 @@ The memory helper feature is implemented: per-repo memory under `~/.agents/devel
 | Aspect       | Detail                                      |
 |--------------|---------------------------------------------|
 | State        | Done                                        |
-| Done         | Exclusive `flock` (30s/0.2s) + atomic `tempfile.mkstemp`/`os.replace` write at `0o600`; dedup, category cap 25, recent runs cap 20; `run.workflow` rendered as `- **Workflow**: <value>` body line |
+| Done         | Exclusive `flock` (30s/0.2s) + atomic `tempfile.mkstemp`/`os.replace` write at `0o600`; dir fsync after rename; lock file deleted after release; dedup, category cap 25, recent runs cap 20; `run.workflow` rendered as `- **Workflow**: <value>` body line |
 | In Progress  | None                                        |
 | Risk         | None                                        |
 | Updated      | 2026-11-18                                  |

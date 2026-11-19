@@ -39,6 +39,9 @@ MAX_PATTERNS_PER_CATEGORY: Final = 25
 #: Maximum number of Recent Runs entries kept in the memory file.
 MAX_RECENT_RUNS: Final = 20
 
+#: Maximum allowed value for a run's round count (informational cap).
+MAX_ROUNDS: Final = 999
+
 #: Seconds to wait for an exclusive lock before raising LockTimeoutError.
 LOCK_TIMEOUT_SECONDS: Final = 30
 

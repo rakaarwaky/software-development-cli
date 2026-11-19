@@ -146,7 +146,8 @@ The feature shall merge a run specification into the memory markdown file under 
 - When a pattern description matches an existing entry (case-insensitive, punctuation-stripped, whitespace-collapsed), the feature shall increment its count rather than appending a duplicate.
 - When the number of patterns in a category exceeds `MAX_PATTERNS_PER_CATEGORY` (25), the feature shall sort by descending count then ascending description and truncate the lowest-count entries.
 - When the number of recent runs exceeds `MAX_RECENT_RUNS` (20), the feature shall drop the oldest entries.
-- The memory file shall be written atomically via `tempfile.mkstemp` + `os.replace`, with mode `0o600`.
+- The memory file shall be written atomically via `tempfile.mkstemp` + `os.replace`, with mode `0o600`; the parent directory shall be `fsync`-ed after the rename for crash durability.
+- The lock file shall be deleted after `flock` is released; any concurrent waiter that opened the file before deletion holds a valid fd to the unlinked inode.
 - The return payload shall include `file` (absolute path), `existed_before` (boolean), `stats` (merge counters), `total_categories`, `total_patterns`, and `total_recent_runs`.
 
 #### Edge Cases
@@ -156,6 +157,8 @@ The feature shall merge a run specification into the memory markdown file under 
 - If `run.date` is provided but not a calendar-valid `YYYY-MM-DD` string, the feature shall raise `SpecError`.
 - If `run.description` is provided and is not a string, the feature shall raise `SpecError`.
 - If `run.description` is provided and does not start with one of `impl: `, `exec: `, `plan: `, or `grill: `, the feature shall raise `SpecError` with exit code `4` and a message naming the accepted prefixes.
+- If `run.rounds` is a bool or not an integer, the feature shall raise `SpecError`.
+- If `run.rounds` is negative or greater than `MAX_ROUNDS` (999), the feature shall raise `SpecError`.
 - If the exclusive lock cannot be acquired within 30 seconds, the feature shall raise `LockTimeoutError` with exit code `3`.
 - If the lock file cannot be opened, the feature shall raise `MemoryHelperError` with exit code `1`.
 
@@ -180,6 +183,7 @@ The feature shall merge a run specification into the memory markdown file under 
 | Spec is empty or not a dict | Call `update({})` | `SpecError` is raised with exit code `4` |
 | Another process holds the lock for more than 30 seconds | Call `update(spec)` | `LockTimeoutError` is raised with exit code `3` |
 | Spec `run.workflow` is not a string | Call `update(spec)` | `SpecError` is raised with exit code `4` |
+| Spec `run.rounds` is negative or > 999 | Call `update(spec)` | `SpecError` is raised with exit code `4` |
 | Spec `run.description` lacks a recognised prefix | Call `update(spec)` | `SpecError` is raised with exit code `4`; message names the accepted prefixes |
 
 #### Metric

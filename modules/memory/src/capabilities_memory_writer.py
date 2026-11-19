@@ -6,6 +6,7 @@ under exclusive flock, rendering the new markdown atomically.
 
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from shared.src.common.taxonomy_sdc_error import SpecError
@@ -73,6 +74,13 @@ class CapabilitiesWriter(IMemoryWriterProtocol):
             )
         finally:
             release_lock(fd)
+            # Remove the lock file after releasing the flock. Safe: any
+            # concurrent waiter that opened the file before unlinking still
+            # holds a valid fd to the unlinked inode.
+            try:
+                os.unlink(str(lock_path))
+            except OSError:
+                pass
 
     # ─── Block 3: Module Helpers ───────────────────────────────────────
 

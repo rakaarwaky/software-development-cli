@@ -29,6 +29,7 @@ from shared.src.common.taxonomy_sdc_constant import (
     LOCK_TIMEOUT_SECONDS,
     MAX_PATTERNS_PER_CATEGORY,
     MAX_RECENT_RUNS,
+    MAX_ROUNDS,
     MEMORY_SUBDIR,
     PUNCT_TAIL_RE,
     RUN_RE,
@@ -503,6 +504,8 @@ def merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[str
     if rounds_raw is not None:
         if isinstance(rounds_raw, bool) or not isinstance(rounds_raw, int):
             raise SpecError('"run.rounds" must be an integer')
+        if rounds_raw < 0 or rounds_raw > MAX_ROUNDS:
+            raise SpecError(f'"run.rounds" must be between 0 and {MAX_ROUNDS}, got {rounds_raw}')
         body_lines.append(f"- **Rounds**: {rounds_raw}")
 
     ibs_raw = run.get("issues_by_severity")
@@ -605,6 +608,18 @@ def atomic_write(path: Path, content: str) -> None:
             os.fsync(f.fileno())
         os.chmod(tmp_name, FILE_MODE)
         os.replace(tmp_name, str(path))
+        # fsync the parent directory so the rename is durable across a crash.
+        try:
+            dir_fd = os.open(str(path.parent), os.O_RDONLY)
+        except OSError:
+            pass
+        else:
+            try:
+                os.fsync(dir_fd)
+            except OSError:
+                pass
+            finally:
+                os.close(dir_fd)
     except Exception:
         try:
             os.unlink(tmp_name)

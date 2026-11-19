@@ -23,6 +23,8 @@ from shared.src.memory.utility_memory_helper import (
 
 # ─── Block 1: Module Declaration ───────────────────────────────────────
 
+VALID_WORKFLOW_PREFIXES: tuple[str, ...] = ("impl: ", "exec: ", "plan: ", "grill: ")
+
 
 class CapabilitiesWriter(IMemoryWriterProtocol):
     """Exclusive-lock update capability."""
@@ -37,6 +39,12 @@ class CapabilitiesWriter(IMemoryWriterProtocol):
             spec = UpdateSpec(data=spec)
         if not isinstance(spec, UpdateSpec) or not spec.data:
             raise SpecError("update requires a non-empty spec dict")
+
+        # Validate run.workflow provenance before acquiring the lock / writing.
+        run_spec = spec.data.get("run")
+        if run_spec is not None and not isinstance(run_spec, dict):
+            raise SpecError('"run" must be an object')
+        self._validate_workflow(run_spec if isinstance(run_spec, dict) else None)
 
         paths = memory_paths(create_dir=True)
         file_path = paths["file"]
@@ -67,6 +75,27 @@ class CapabilitiesWriter(IMemoryWriterProtocol):
             release_lock(fd)
 
     # ─── Block 3: Module Helpers ───────────────────────────────────────
+
+    @staticmethod
+    def _validate_workflow(run_spec: dict | None) -> None:
+        """Reject specs whose run.description lacks a recognized workflow prefix.
+
+        If run_spec is None or empty, the update is patterns-only and is allowed.
+        If run_spec has a description field, it must start with one of
+        VALID_WORKFLOW_PREFIXES.
+        """
+        if not run_spec:
+            return  # no run entry — allowed (patterns-only update)
+        desc = run_spec.get("description")
+        if desc is None:
+            return  # run entry without description — allowed (e.g., workflow/rounds only)
+        if not isinstance(desc, str):
+            raise SpecError('"run.description" must be a string')
+        if not any(desc.startswith(p) for p in VALID_WORKFLOW_PREFIXES):
+            raise SpecError(
+                f'"run.description" must start with one of {VALID_WORKFLOW_PREFIXES}; '
+                f"got: {desc[:50]!r}"
+            )
 
     @classmethod
     def create_default(cls) -> CapabilitiesWriter:

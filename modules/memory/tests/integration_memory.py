@@ -46,3 +46,16 @@ class TestMemoryDIWiring:
 
         feature = create_memory_feature()
         assert callable(getattr(feature, "execute", None))
+
+
+class TestCrossSkillWorkflowPrefixes:
+    """All four skills must be able to write memory specs via update."""
+
+    def test_all_four_workflow_prefixes_accepted(self, isolated_home, git_repo) -> None:
+        """All four workflow prefixes must be accepted by sdc memory update."""
+        writer = CapabilitiesWriter()
+        prefixes = ["impl: ", "exec: ", "plan: ", "grill: "]
+        for prefix in prefixes:
+            res = writer.update({"run": {"description": f"{prefix}test workflow"}})
+            # Each should succeed (existed_before may be True after first)
+            assert res is not None

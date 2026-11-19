@@ -155,6 +155,55 @@ class TestCapabilitiesWriterWorkflow:
         assert "**Workflow**" not in text
 
 
+class TestCapabilitiesWriterWorkflowPrefixValidation:
+    """run.description must carry a recognized workflow prefix (Task 1/2)."""
+
+    def test_run_without_workflow_prefix_raises_spec_error(
+        self, isolated_home: Path, git_repo: Path
+    ) -> None:
+        writer = CapabilitiesWriter()
+        with pytest.raises(SpecError) as exc_info:
+            writer.update({"run": {"description": "no prefix here"}})
+        assert exc_info.value.exit_code == 4
+        assert "must start with one of" in str(exc_info.value)
+
+    def test_run_with_valid_impl_prefix_succeeds(
+        self, isolated_home: Path, git_repo: Path
+    ) -> None:
+        writer = CapabilitiesWriter()
+        res = writer.update({"run": {"description": "impl: valid workflow"}})
+        assert res.existed_before is False
+
+    def test_run_with_valid_exec_prefix_succeeds(
+        self, isolated_home: Path, git_repo: Path
+    ) -> None:
+        writer = CapabilitiesWriter()
+        res = writer.update({"run": {"description": "exec: valid workflow"}})
+        assert res.existed_before is False
+
+    def test_run_with_valid_plan_prefix_succeeds(
+        self, isolated_home: Path, git_repo: Path
+    ) -> None:
+        writer = CapabilitiesWriter()
+        res = writer.update({"run": {"description": "plan: valid workflow"}})
+        assert res.existed_before is False
+
+    def test_run_with_valid_grill_prefix_succeeds(
+        self, isolated_home: Path, git_repo: Path
+    ) -> None:
+        writer = CapabilitiesWriter()
+        res = writer.update({"run": {"description": "grill: valid workflow"}})
+        assert res.existed_before is False
+
+    def test_run_without_description_is_allowed(
+        self, isolated_home: Path, git_repo: Path
+    ) -> None:
+        """Patterns-only update (no run entry) is allowed."""
+        writer = CapabilitiesWriter()
+        res = writer.update({"patterns": [{"category": "Testing", "description": "x"}]})
+        assert res.existed_before is False
+
+
 def _concurrent_worker(spec: dict, home_dir: str, repo_dir: str) -> None:
     """Worker function for concurrency test running in separate process."""
     import os

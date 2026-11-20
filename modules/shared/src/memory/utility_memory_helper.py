@@ -14,7 +14,7 @@ import subprocess  # nosec: trusted system git/python calls
 import tempfile
 import time
 from collections import OrderedDict
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +45,7 @@ from shared.src.common.taxonomy_sdc_error import (
     HostError,
     LockTimeoutError,
     MemoryHelperError,
+    MemoryUsageError,
     SpecError,
     WorkspaceIdError,
 )
@@ -58,6 +59,22 @@ def _git_executable() -> str:
     return found if found is not None else "git"
 
 # ─── Inlined helpers (avoid utility→utility self-import, AES201) ────────
+
+#: Closed vocabulary for ``run.workflow`` (UX-S3-001). The four skill
+#: names accepted by ``sdc memory update`` when the ``workflow`` field is
+#: present. Empty or whitespace-only values are skipped (no workflow line
+#: emitted); non-empty values outside this set raise ``SpecError``.
+_VALID_WORKFLOW_NAMES: frozenset[str] = frozenset({"impl", "exec", "plan", "grill"})
+
+
+#: Python 3.9-compatible alias for the UTC tzinfo object (UX-S1-001).
+#: ``datetime.UTC`` is 3.11+; this module floors at 3.9 per the PRD.
+UTC = timezone.utc
+
+
+def _now_utc_strftime(fmt: str) -> str:
+    """Return the current UTC time formatted per ``fmt``."""
+    return datetime.now(UTC).strftime(fmt)
 
 
 def _canonicalize_remote(url: str) -> str:
@@ -112,10 +129,10 @@ def _repo_slug() -> str:
             timeout=GIT_TIMEOUT_SECONDS,
         )
     except (OSError, subprocess.SubprocessError):
-        raise HostError("host: git command failed")
+        raise HostError("git command failed")
 
     if toplevel_result.returncode != 0 or not toplevel_result.stdout.strip():
-        raise HostError("host: not inside a git repository")
+        raise HostError("not inside a git repository")
 
     try:
         remote_result = subprocess.run(  # nosec: git args are internally built
@@ -143,7 +160,7 @@ def _repo_slug() -> str:
     name = Path(toplevel_result.stdout.strip()).name
     slug = _slugify(name)
     if not slug:
-        raise HostError("host: could not derive project repo name from git root")
+        raise HostError("could not derive project repo name from git root")
     return slug
 
 
@@ -208,7 +225,15 @@ def get_workspace_id() -> str:
 
 
 def memory_paths(*, create_dir: bool = False) -> dict[str, Path]:
-    """Return ``{"dir", "file", "lock"}`` for this repo."""
+    """Return ``{"dir", "file", "lock"}`` for this repo.
+
+    Resolution order for the per-repo slug:
+    1. ``_repo_slug()`` — git origin remote or git toplevel directory name.
+    2. Current working directory name — used when the active directory is
+       not inside a git repository (FR-MEM-001 fallback) or when ``git``
+       fails to resolve the slug for any reason.
+    3. ``WorkspaceIdError`` — raised only when both (1) and (2) fail.
+    """
     try:
         home = Path.home()
     except RuntimeError:
@@ -217,8 +242,20 @@ def memory_paths(*, create_dir: bool = False) -> dict[str, Path]:
         )
     try:
         slug = _repo_slug()
-    except HostError as exc:
-        raise WorkspaceIdError(f"could not determine repo slug: {exc}")
+    except HostError:
+        try:
+            cwd = Path.cwd()
+        except (OSError, FileNotFoundError):
+            raise WorkspaceIdError(
+                "could not determine repo slug: not inside a git repository "
+                "and current working directory is unreadable"
+            )
+        cwd_slug = _slugify(cwd.name)
+        if not cwd_slug:
+            raise WorkspaceIdError(
+                f"could not determine repo slug: cwd {cwd} has no usable name component"
+            )
+        slug = cwd_slug
     base = home / ".agents" / "develop" / slug / MEMORY_SUBDIR
     if create_dir:
         try:
@@ -234,10 +271,20 @@ def memory_paths(*, create_dir: bool = False) -> dict[str, Path]:
 
 
 def parse_memory_file(content: str) -> dict[str, Any]:
-    """Parse the memory file into a structured dict."""
+    """Parse the memory file into a structured dict.
+
+    Unmatched lines inside ``## Common Issues`` (text before the first
+    ``###`` heading, or free text between categories) are preserved under
+    ``state["common_issues_extra"]``. Unmatched lines inside
+    ``## Recent Runs`` before the first ``### <date> —`` heading are
+    preserved under ``state["recent_runs_intro"]``. Both are re-emitted
+    by :func:`render_memory_file` so a round-trip never drops content.
+    """
     state: dict[str, Any] = {
         "header": [],
         "common_issues": OrderedDict(),
+        "common_issues_extra": [],
+        "recent_runs_intro": [],
         "recent_runs": [],
     }
 
@@ -282,6 +329,10 @@ def parse_memory_file(content: str) -> dict[str, Any]:
                         "count": int(issue_match.group(2)),
                     }
                 )
+                continue
+            # Unmatched line under Common Issues (intro text before the
+            # first category heading, or free text between categories).
+            state["common_issues_extra"].append(line)
             continue
 
         if section == "recent_runs":
@@ -297,11 +348,16 @@ def parse_memory_file(content: str) -> dict[str, Any]:
                 continue
             if current_run is not None:
                 current_run["body_lines"].append(line)
+            else:
+                # Intro text under Recent Runs before the first RUN_RE heading.
+                state["recent_runs_intro"].append(line)
 
     if current_run is not None:
         state["recent_runs"].append(current_run)
 
     state["header"] = drop_trailing_blank(state["header"])
+    state["common_issues_extra"] = drop_trailing_blank(state["common_issues_extra"])
+    state["recent_runs_intro"] = drop_trailing_blank(state["recent_runs_intro"])
     for run in state["recent_runs"]:
         run["body_lines"] = drop_trailing_blank(run["body_lines"])
     return state
@@ -323,6 +379,11 @@ def render_memory_file(state: dict[str, Any]) -> str:
     out.extend(drop_trailing_blank(header))
     out.append("")
 
+    # Extra unmatched lines preserved from ``## Common Issues`` (re-emitted
+    # so a round-trip never drops content).
+    out.extend(state.get("common_issues_extra") or [])
+    out.append("")
+
     out.append("## Common Issues")
     out.append("")
     has_any = any(entries for entries in state["common_issues"].values())
@@ -341,10 +402,16 @@ def render_memory_file(state: dict[str, Any]) -> str:
 
     out.append("## Recent Runs")
     out.append("")
-    for run in state["recent_runs"]:
-        out.append(f"### {run['date']} — {run['description']}")
-        out.extend(drop_trailing_blank(run.get("body_lines") or []))
+    # Intro lines preserved from ``## Recent Runs`` before the first heading.
+    out.extend(state.get("recent_runs_intro") or [])
+    if not state.get("recent_runs"):
+        out.append("_No runs recorded yet._")
         out.append("")
+    else:
+        for run in state["recent_runs"]:
+            out.append(f"### {run['date']} — {run['description']}")
+            out.extend(drop_trailing_blank(run.get("body_lines") or []))
+            out.append("")
 
     return "\n".join(out).rstrip() + "\n"
 
@@ -470,7 +537,8 @@ def merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[str
     """Validate and prepend a Recent Runs entry. Updates ``stats`` in place."""
     date_raw = run.get("date")
     if date_raw is None or (isinstance(date_raw, str) and not date_raw.strip()):
-        date = datetime.now(UTC).strftime("%Y-%m-%d")
+        # Python 3.9 floor (PRD); datetime.UTC requires 3.11+ (UP017).
+        date = _now_utc_strftime("%Y-%m-%d")
     else:
         if not isinstance(date_raw, str):
             raise SpecError('"run.date" must be a string')
@@ -487,7 +555,7 @@ def merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[str
     if desc_raw is not None and not isinstance(desc_raw, str):
         raise SpecError('"run.description" must be a string')
     description = _sanitize_one_line(desc_raw or "") or "(no description)"
-    description = description.replace('"', "").strip() or "(no description)"
+    description = description.replace('"', "'").strip() or "(no description)"
     description = f'"{description}"'
 
     body_lines: list[str] = []
@@ -498,6 +566,11 @@ def merge_recent_run(state: dict[str, Any], run: dict[str, Any], stats: dict[str
             raise SpecError('"run.workflow" must be a string')
         workflow = _sanitize_one_line(wf_raw)
         if workflow:
+            if workflow not in _VALID_WORKFLOW_NAMES:
+                raise SpecError(
+                    "run.workflow must be one of "
+                    f"{list(_VALID_WORKFLOW_NAMES)}; got {workflow!r}"
+                )
             body_lines.append(f"- **Workflow**: {workflow}")
 
     rounds_raw = run.get("rounds")
@@ -573,7 +646,14 @@ def top_patterns(
     ``category`` (when given) restricts the result to one category using
     case/whitespace-insensitive matching; an unknown category yields an
     empty list.
+
+    Raises ``MemoryUsageError`` when ``n < 1`` (FR-MEM-003 usage error,
+    exit code 2).
     """
+    if n < 1:
+        raise MemoryUsageError(
+            f"n must be >= 1; got {n}"
+        )
     flat: list[dict[str, Any]] = [
         {
             "category": cat,
@@ -595,12 +675,22 @@ def top_patterns(
 
 
 def atomic_write(path: Path, content: str) -> None:
-    """Write ``content`` to ``path`` atomically, with mode ``FILE_MODE``."""
-    fd, tmp_name = tempfile.mkstemp(
-        dir=str(path.parent),
-        prefix=f".{path.name}.",
-        suffix=".tmp",
-    )
+    """Write ``content`` to ``path`` atomically, with mode ``FILE_MODE``.
+
+    Raises ``MemoryHelperError`` wrapping any ``OSError`` from the
+    underlying filesystem operations (UX-S5-008: classified I/O errors
+    surface as ``MemoryHelperError`` exit code 1 rather than a bare
+    ``OSError``).
+    """
+    try:
+        fd, tmp_name = tempfile.mkstemp(
+            dir=str(path.parent),
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+        )
+    except OSError as exc:
+        raise MemoryHelperError(f"could not create temp file in {path.parent}: {exc}")
+
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(content)
@@ -620,6 +710,14 @@ def atomic_write(path: Path, content: str) -> None:
                 pass
             finally:
                 os.close(dir_fd)
+    except OSError as exc:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise MemoryHelperError(
+            f"could not write memory file {path}: {exc}"
+        )
     except Exception:
         try:
             os.unlink(tmp_name)
@@ -653,7 +751,9 @@ def acquire_lock(lock_path: Path) -> int:
                 pass
             if time.monotonic() >= deadline:
                 raise LockTimeoutError(
-                    f"could not acquire lock on {lock_path} within {LOCK_TIMEOUT_SECONDS}s"
+                    f"could not acquire memory lock at {lock_path} within "
+                    f"{LOCK_TIMEOUT_SECONDS}s — another sdc memory update is "
+                    f"writing. Retry in a few seconds; nothing was written."
                 )
             time.sleep(LOCK_POLL_INTERVAL)
     except BaseException:

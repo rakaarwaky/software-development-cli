@@ -48,7 +48,7 @@ def bootstrap_ns_roots() -> None:
         sys.path.append(str(tools_root))
     if str(modules_root) not in sys.path:
         sys.path.append(str(modules_root))
-    for _m in ("shared", "cli", "planner", "memory", "host"):
+    for _m in ("shared", "cli", "planner", "memory", "host", "pool"):
         _pkg = modules_root / _m
         if str(_pkg) not in sys.path:
             sys.path.append(str(_pkg))

@@ -57,10 +57,15 @@ keep every flag and subcommand term in lockstep across `README.md`,
     │   ├── src/                # capabilities_host_helper
     │   ├── FRD.md
     │   └── BACKLOG.md
+    ├── pool/                   # Agent-session pooler (Grok Build)
+    │   ├── src/                # agent + capabilities_pool_grok
+    │   ├── FRD.md
+    │   └── BACKLOG.md
     ├── shared/                 # Shared kernel
     │   ├── src/common/         # taxonomy + utility
     │   ├── src/host/           # host contracts + taxonomy
     │   ├── src/memory/         # memory contracts + taxonomy
+    │   ├── src/pool/           # pool contracts + taxonomy
     │   ├── src/planner/        # planner contracts + taxonomy
     │   ├── DATA.md
     │   └── BACKLOG.md

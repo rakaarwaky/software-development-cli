@@ -82,3 +82,25 @@ class PlanNotWiredError(SdcError):
     """
 
     exit_code = 1
+
+
+class PoolError(SdcError):
+    """Raised when the pool capability can't reach the orca CLI or session.
+
+    Covers an unresolvable orca CLI and the consecutive-failure cap on
+    genuine orca CLI/parse errors.
+    """
+
+    exit_code = 1
+
+
+class PoolUsageError(SdcError):
+    """Raised when the pool capability receives an unknown agent or action."""
+
+    exit_code = 2
+
+
+class PoolNotWiredError(SdcError):
+    """Raised when the pool capability has not been wired into the surface."""
+
+    exit_code = 1

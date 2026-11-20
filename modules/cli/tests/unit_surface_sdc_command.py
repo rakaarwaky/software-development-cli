@@ -36,6 +36,10 @@ from shared.src.planner.taxonomy_planner_request import (  # noqa: E402
     PlanRequest,
     PlanResult,
 )
+from shared.src.pool.taxonomy_pool_request import (  # noqa: E402
+    PoolRequest,
+    PoolResult,
+)
 from cli.src.surface_sdc_command import (  # noqa: E402
     cmd_sdc,
     reset_capabilities,
@@ -44,13 +48,14 @@ from cli.src.surface_sdc_command import (  # noqa: E402
 from unittest.mock import MagicMock  # noqa: E402
 
 
-def _wire(cap_host=None, cap_memory=None, cap_planner=None) -> None:
+def _wire(cap_host=None, cap_memory=None, cap_planner=None, cap_pool=None) -> None:
     """Wire fake capabilities into the surface, resetting first."""
     reset_capabilities()
     set_capabilities(
         host=cap_host or MagicMock(),
         memory=cap_memory or MagicMock(),
         planner=cap_planner or MagicMock(),
+        pool=cap_pool,
     )
 
 
@@ -480,3 +485,155 @@ def test_memory_top_invalid_n_exits_two():
     finally:
         sys.stdout, sys.stderr = old_out, old_err
     assert "--n must be a positive integer" in err.getvalue()
+
+
+# ── pool ───────────────────────────────────────────────────────────────
+
+
+def _run_pool(argv: list[str], result: PoolResult) -> tuple[int, dict, str]:
+    """Run a pool argv through the surface with a fake pool capability."""
+    cap = MagicMock()
+    cap.execute.return_value = result
+    _wire(cap_pool=cap)
+    out = StringIO()
+    err = StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = out, err
+    try:
+        code = cmd_sdc(argv)
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+    data = json.loads(out.getvalue()) if out.getvalue().strip() else {}
+    return code, data, err.getvalue()
+
+
+def test_pool_grok_done_exits_zero():
+    res = PoolResult(session="t1", status="done", sentinel=True, terminal_status="running")
+    code, data, err = _run_pool(["pool", "grok", "t1"], res)
+    assert code == 0
+    assert data["session"] == "t1"
+    assert data["status"] == "done"
+    assert data["sentinel"] is True
+    assert err == ""
+
+
+def test_pool_grok_failed_exits_one():
+    res = PoolResult(session="t1", status="failed", terminal_status="exited")
+    code, data, _ = _run_pool(["pool", "grok", "t1"], res)
+    assert code == 1
+    assert data["status"] == "failed"
+    assert data["final_report"] is False
+
+
+def test_pool_grok_running_exits_zero():
+    res = PoolResult(session="t1", status="running")
+    code, data, _ = _run_pool(["pool", "grok", "t1"], res)
+    assert code == 0
+    assert data["status"] == "running"
+
+
+def test_pool_grok_unknown_exits_one():
+    res = PoolResult(session="t1", status="unknown")
+    code, data, _ = _run_pool(["pool", "grok", "t1"], res)
+    assert code == 1
+    assert data["status"] == "unknown"
+
+
+def test_pool_grok_timed_out_exits_three():
+    res = PoolResult(session="t1", status="running", timed_out=True)
+    code, data, _ = _run_pool(["pool", "grok", "--wait", "t1"], res)
+    assert code == 3
+    assert data["status"] == "running"
+    assert data["timed_out"] is True
+
+
+def test_pool_grok_forwards_flags():
+    res = PoolResult(session="t1", status="running")
+    cap = MagicMock()
+    cap.execute.return_value = res
+    _wire(cap_pool=cap)
+    out, err = StringIO(), StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = out, err
+    try:
+        code = cmd_sdc(
+            [
+                "pool",
+                "grok",
+                "t1",
+                "--wait",
+                "--deadline-hours",
+                "3",
+                "--wait-ms",
+                "5000",
+                "--idle-confirm",
+                "4",
+                "--sentinel",
+                "DONE",
+                "--tail",
+                "5",
+                "--orca",
+                "/bin/orca",
+            ]
+        )
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+    assert code == 0
+    req = cap.execute.call_args[0][0]
+    assert req.action == "poll"
+    assert req.agent == "grok"
+    assert req.session_id == "t1"
+    assert req.wait is True
+    assert req.deadline_hours == 3
+    assert req.wait_ms == 5000
+    assert req.idle_confirm == 4
+    assert req.sentinel == "DONE"
+    assert req.tail == 5
+    assert req.orca == "/bin/orca"
+
+
+def test_pool_missing_agent_is_usage_error():
+    reset_capabilities()
+    out, err = StringIO(), StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = out, err
+    try:
+        try:
+            cmd_sdc(["pool"])
+            assert False, "expected SystemExit"
+        except SystemExit as exc_info:
+            assert exc_info.code == 2
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+
+
+def test_pool_grok_missing_session_id_is_usage_error():
+    reset_capabilities()
+    out, err = StringIO(), StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = out, err
+    try:
+        try:
+            cmd_sdc(["pool", "grok"])
+            assert False, "expected SystemExit"
+        except SystemExit as exc_info:
+            assert exc_info.code == 2
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+
+
+def test_pool_not_wired_raises_pool_not_wired():
+    reset_capabilities()
+    # wire only host/memory/planner so pool stays None
+    set_capabilities(host=MagicMock(), memory=MagicMock(), planner=MagicMock())
+    out, err = StringIO(), StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = out, err
+    try:
+        code = cmd_sdc(["pool", "grok", "t1"])
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err
+    assert code == 1
+    assert "pool agent not wired" in err.getvalue()
+    reset_capabilities()
+

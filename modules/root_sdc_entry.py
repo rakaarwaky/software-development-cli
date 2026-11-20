@@ -17,7 +17,7 @@ _TOOLS_ROOT = _MODULES_ROOT.parent
 if str(_TOOLS_ROOT) not in sys.path:
     sys.path.append(str(_TOOLS_ROOT))
 
-for _m in ("shared", "cli", "planner", "memory", "host"):
+for _m in ("shared", "cli", "planner", "memory", "host", "pool"):
     _src = _MODULES_ROOT / _m / "src"
     if _src.is_dir():
         _p = str(_src)
@@ -38,11 +38,13 @@ def _wire_capabilities() -> None:
     from host.src.root_host_container import create_host_feature
     from memory.src.root_memory_container import create_memory_feature
     from planner.src.root_planner_container import create_planner_feature
+    from pool.src.root_pool_container import create_pool_feature
 
     set_capabilities(
         host=create_host_feature(),
         memory=create_memory_feature(),
         planner=create_planner_feature(),
+        pool=create_pool_feature(),
     )
 
 
@@ -51,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
     args = argv if argv is not None else sys.argv[1:]
     if not args:
         print(
-            "Usage: sdc <host|memory|validate-plan> [flags]\n"
+            "Usage: sdc <host|memory|validate-plan|pool> [flags]\n"
             "Run 'sdc --help' for details on available commands.",
             file=sys.stderr,
         )

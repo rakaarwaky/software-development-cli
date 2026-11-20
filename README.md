@@ -26,6 +26,7 @@ into one binary. It replaces the per-skill `scripts/host.py`,
 | 5 | Memory update | `echo '{"patterns":[...]}' \| sdc memory update` |
 | 6 | Memory top | `sdc memory top [--n N] [--category NAME]` |
 | 7 | Validate plan | `sdc validate-plan <plan-doc-path>` |
+| 8 | Pool grok | `sdc pool grok <session-id> [--wait]` |
 
 ### `sdc host <setup|cleanup>`
 
@@ -42,6 +43,21 @@ into one binary. It replaces the per-skill `scripts/host.py`,
 ### `sdc validate-plan <plan-doc-path>`
 
 Validates the `## PR Plan` section of a plan document: parses PR entries, validates the dependency DAG (unique IDs, valid references, no cycles), computes level assignments, and reports max parallelism as JSON.
+
+### `sdc pool grok <session-id> [--wait]`
+
+Polls a Grok Build session running in an Orca terminal and detects completion. Reads the rendered terminal screen with `orca terminal read --screen --json` (a full-screen TUI renders to the screen, not the PTY stream) and paces with `orca terminal wait --for tui-idle`.
+
+- `<session-id>`: the Orca terminal handle of the running Grok session.
+- `--wait`: block until completion, failure, or deadline (default: single non-blocking probe).
+- `--deadline-hours` (default 2): wait-mode polling deadline.
+- `--wait-ms` (default 15000): per-cycle `tui-idle` wait timeout.
+- `--idle-confirm` (default 2): consecutive idle+final-report cycles before declaring done.
+- `--sentinel` (default `EXECUTE_PLAN_COMPLETE`): completion sentinel to look for on screen.
+- `--tail` (default 50): number of trailing screen lines to include in the result.
+- `--orca`: override the Orca CLI executable.
+
+Prints JSON `{session, status, sentinel, final_report, terminal_status, timed_out, cycles, cli_errors, tail}` to stdout. `status` is `done`/`running`/`failed`/`unknown`. Exit codes: `0` = done or running, `1` = failed/unknown/unwired, `3` = wait deadline exceeded. The orca CLI resolves via `--orca` → `ORCA_CLI_COMMAND` → `ORCA` → `orca-ide`/`orca` on `PATH`.
 
 ## Reference
 

@@ -41,7 +41,8 @@ each added skill.
 - `sdc host setup|cleanup` for per-repo artifact directories, implemented on the AES 7-layer architecture and shipped through the XDG installer.
 - `sdc memory path|read|update|top` for per-repo memory files, implemented on the AES 7-layer architecture and shipped through the XDG installer.
 - `sdc validate-plan` for PR-plan DAG validation, implemented on the AES 7-layer architecture and shipped through the XDG installer.
-- `sdc` CLI surface dispatching to host, memory, and planner contracts, shipped through `scripts/install.sh` to `~/.local/bin/sdc`.
+- `sdc pool grok <session-id>` for polling a Grok Build session until completion, implemented on the AES 7-layer architecture and shipped through the XDG installer.
+- `sdc` CLI surface dispatching to host, memory, planner, and pool contracts, shipped through `scripts/install.sh` to `~/.local/bin/sdc`.
 
 ### Out of Scope
 
@@ -137,6 +138,24 @@ no cycles), computes level assignments, and reports max parallelism as JSON.
 1. Author saves a plan document with a `## PR Plan` section.
 2. Author runs `sdc validate-plan <plan-doc-path>`.
 3. `sdc` prints a JSON report with `valid`, `pr_count`, `levels`, `max_parallelism`, and any errors.
+
+### PR-SDC-005: Pool Helper
+
+#### User Stories
+
+| As a | I want | So that | Priority |
+|------|--------|---------|----------|
+| Skill author | to call `sdc pool grok <session-id> [--wait]` | I can standardize how I poll a Grok Build session until it completes | P1 |
+
+#### Proposed Solution
+
+`sdc pool grok <session-id>` polls the rendered screen of an Orca terminal running a Grok Build TUI session and detects completion via a configurable sentinel (default `EXECUTE_PLAN_COMPLETE`) or a final-report shape on an idle screen. With `--wait` it blocks until completion, failure, or deadline (default 2h). Output is JSON to stdout with exit codes 0/1/3.
+
+#### Main User Flow
+
+1. Author runs `sdc pool grok <session-id>` to probe once.
+2. Author runs `sdc pool grok --wait <session-id>` to block until the session completes.
+3. `sdc` prints a JSON report with `session`, `status`, `sentinel`, `final_report`, `terminal_status`, `timed_out`, `cycles`, `cli_errors`, `tail`.
 
 ## Reference
 

@@ -42,6 +42,14 @@ feature's `BACKLOG.md`.
 | State        | Done                                      |
 | Backlog      | [BACKLOG.md](modules/planner/BACKLOG.md)  |
 
+### PR-SDC-005: Pool Helper
+
+| Aspect       | Detail                                    |
+|--------------|-------------------------------------------|
+| Priority     | P1                                        |
+| State        | Done                                      |
+| Backlog      | [BACKLOG.md](modules/pool/BACKLOG.md)     |
+
 ## Reference
 
 | Artifact     | Purpose                                    | Link                       |

@@ -1,7 +1,7 @@
 """CLI surface — command handlers for the ``sdc`` verbs (AES surface layer).
 
-Dispatches ``sdc <subcommand> [flags]`` to the host / memory / planner
-capabilities via their contract aggregates. The surface is a thin
+Dispatches ``sdc <subcommand> [flags]`` to the host / memory / planner /
+pool capabilities via their contract aggregates. The surface is a thin
 translator: argv becomes a request, the capability returns a typed
 result, and the surface renders JSON to stdout.
 
@@ -9,10 +9,13 @@ Exit-code contract (primary agent-readable state signal):
   0  success
   1  classified runtime failure (host: not a git repo; memory: I/O error;
      planner: unwired capability ``PlanNotWiredError``; plan DAG invalid
-     ``PlanValidationError``)
+     ``PlanValidationError``; pool: unwired agent ``PoolNotWiredError``,
+     unreachable orca CLI ``PoolError``, session failed or unreadable)
   2  usage error (unknown subcommand, missing required arg; plan file
-     unreadable ``PlanUsageError``; workspace id ``WorkspaceIdError``)
-  3  memory lock timeout (``LockTimeoutError``)
+     unreadable ``PlanUsageError``; pool: unknown agent/action
+     ``PoolUsageError``; workspace id ``WorkspaceIdError``)
+  3  timeout (memory lock ``LockTimeoutError``; pool: polling deadline
+     elapsed with the session still running)
   4  memory spec error (malformed JSON on stdin, ``SpecError``); plan
      parse error — missing ``## PR Plan`` section or no entries
      (``PlanParseError``)
@@ -32,12 +35,16 @@ from shared.src.common.taxonomy_sdc_error import (
     PlanParseError,
     PlanUsageError,
     PlanValidationError,
+    PoolError,
+    PoolNotWiredError,
+    PoolUsageError,
     SpecError,
     WorkspaceIdError,
 )
 from shared.src.host.taxonomy_host_request import HostRequest, HostResult
 from shared.src.memory.taxonomy_memory_request import MemoryRequest, MemoryResult
 from shared.src.planner.taxonomy_planner_request import PlanRequest, PlanResult
+from shared.src.pool.taxonomy_pool_request import PoolRequest, PoolResult
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -94,6 +101,60 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Validate the PR Plan DAG in a plan document.",
     )
     vp.add_argument("path", help="Path to the plan document.")
+
+    # sdc pool <agent> <session-id>
+    pool = sub.add_parser(
+        "pool",
+        help="Poll an agent session running in an Orca terminal (Grok Build).",
+    )
+    pool_sub = pool.add_subparsers(dest="pool_agent", required=True, metavar="<agent>")
+    pool_grok = pool_sub.add_parser(
+        "grok",
+        help="Poll a Grok Build session until it completes (or probe once).",
+    )
+    pool_grok.add_argument(
+        "session_id",
+        help="Orca terminal handle of the Grok Build session to poll.",
+    )
+    pool_grok.add_argument(
+        "--wait",
+        action="store_true",
+        help="Block until completion, failure, or deadline (default: single probe).",
+    )
+    pool_grok.add_argument(
+        "--deadline-hours",
+        type=_positive_int,
+        default=2,
+        help="Polling deadline in hours for --wait (default: 2).",
+    )
+    pool_grok.add_argument(
+        "--wait-ms",
+        type=_positive_int,
+        default=15000,
+        help="Per-cycle tui-idle wait timeout in ms (default: 15000).",
+    )
+    pool_grok.add_argument(
+        "--idle-confirm",
+        type=_positive_int,
+        default=2,
+        help="Consecutive idle+final-report cycles before declaring done (default: 2).",
+    )
+    pool_grok.add_argument(
+        "--sentinel",
+        default="EXECUTE_PLAN_COMPLETE",
+        help="Completion sentinel to look for on the rendered screen.",
+    )
+    pool_grok.add_argument(
+        "--tail",
+        type=_positive_int,
+        default=50,
+        help="Screen lines to include in the result tail (default: 50).",
+    )
+    pool_grok.add_argument(
+        "--orca",
+        default="",
+        help="Orca CLI executable (default: $ORCA_CLI_COMMAND, else orca-ide/orca on PATH).",
+    )
 
     return parser
 
@@ -223,6 +284,45 @@ def _dispatch_validate_plan(args: argparse.Namespace) -> int:
     return 0 if result.valid and not result.errors else 1
 
 
+def _dispatch_pool(args: argparse.Namespace) -> int:
+    request = PoolRequest(
+        action="poll",
+        agent="grok",
+        session_id=args.session_id,
+        wait=args.wait,
+        deadline_hours=args.deadline_hours,
+        wait_ms=args.wait_ms,
+        idle_confirm=args.idle_confirm,
+        sentinel=args.sentinel,
+        tail=args.tail,
+        orca=args.orca or "",
+    )
+    result = _call_pool(request)
+    json.dump(
+        {
+            "session": result.session,
+            "status": result.status,
+            "sentinel": result.sentinel,
+            "final_report": result.final_report,
+            "terminal_status": result.terminal_status,
+            "timed_out": result.timed_out,
+            "cycles": result.cycles,
+            "cli_errors": result.cli_errors,
+            "tail": result.tail,
+        },
+        sys.stdout,
+        indent=2,
+    )
+    sys.stdout.write("\n")
+    if result.status == "failed":
+        return 1
+    if result.timed_out:
+        return 3
+    if result.status == "unknown":
+        return 1
+    return 0
+
+
 def _read_update_spec(args: argparse.Namespace) -> dict:
     """Read the update JSON spec from ``--file`` or stdin."""
     source = args.file if args.file else "stdin"
@@ -248,26 +348,30 @@ def _read_update_spec(args: argparse.Namespace) -> dict:
 _HOST_AGENT: object | None = None
 _MEMORY_CAPABILITY: object | None = None
 _PLANNER_CAPABILITY: object | None = None
+_POOL_AGENT: object | None = None
 
 
 def set_capabilities(
     host: object,
     memory: object,
     planner: object,
+    pool: object | None = None,
 ) -> None:
     """Inject the capability instances. Called by the root entry."""
-    global _HOST_AGENT, _MEMORY_CAPABILITY, _PLANNER_CAPABILITY
+    global _HOST_AGENT, _MEMORY_CAPABILITY, _PLANNER_CAPABILITY, _POOL_AGENT
     _HOST_AGENT = host
     _MEMORY_CAPABILITY = memory
     _PLANNER_CAPABILITY = planner
+    _POOL_AGENT = pool
 
 
 def reset_capabilities() -> None:
     """Clear injected capability instances. Enables isolated test wiring."""
-    global _HOST_AGENT, _MEMORY_CAPABILITY, _PLANNER_CAPABILITY
+    global _HOST_AGENT, _MEMORY_CAPABILITY, _PLANNER_CAPABILITY, _POOL_AGENT
     _HOST_AGENT = None
     _MEMORY_CAPABILITY = None
     _PLANNER_CAPABILITY = None
+    _POOL_AGENT = None
 
 
 def _call_host(request: HostRequest) -> HostResult:
@@ -291,6 +395,14 @@ def _call_planner(request: PlanRequest) -> PlanResult:
     return _PLANNER_CAPABILITY.execute(request)
 
 
+def _call_pool(request: PoolRequest) -> PoolResult:
+    if _POOL_AGENT is None:
+        raise PoolNotWiredError(
+            "pool agent not wired; call set_capabilities first"
+        )
+    return _POOL_AGENT.execute(request)
+
+
 def cmd_sdc(argv: list[str]) -> int:
     """Entry point for ``sdc <subcommand> [flags]``.
 
@@ -307,8 +419,19 @@ def cmd_sdc(argv: list[str]) -> int:
             return _dispatch_memory(args)
         if args.subcommand == "validate-plan":
             return _dispatch_validate_plan(args)
+        if args.subcommand == "pool":
+            return _dispatch_pool(args)
         return 2
-    except (HostError, WorkspaceIdError, MemoryHelperError, PlanUsageError, PlanNotWiredError) as exc:
+    except (
+        HostError,
+        WorkspaceIdError,
+        MemoryHelperError,
+        PlanUsageError,
+        PlanNotWiredError,
+        PoolUsageError,
+        PoolNotWiredError,
+        PoolError,
+    ) as exc:
         print(f"sdc: {exc}", file=sys.stderr)
         return exc.exit_code
     except LockTimeoutError as exc:

@@ -4,6 +4,7 @@ Covers:
 - Missing memory file: exists=False, empty patterns, total 0
 - Top-N slicing, count-desc ordering, and post-filter total
 - Case/whitespace-insensitive category filter
+- ``n < 1`` raises ``MemoryUsageError`` (UX-S5-003, UX-S5-004)
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ import pytest
 
 from memory.src.capabilities_memory_top import CapabilitiesTop
 from memory.src.capabilities_memory_writer import CapabilitiesWriter
+from shared.src.common.taxonomy_sdc_error import MemoryUsageError
 
 
 @pytest.fixture()
@@ -108,3 +110,21 @@ class TestCapabilitiesTopCategoryFilter:
         assert res.top_patterns == []
         assert res.top_total == 0
         assert res.top_exists is True
+
+
+class TestCapabilitiesTopUsageErrors:
+    """top must reject non-positive n with MemoryUsageError (exit_code=2)."""
+
+    def test_top_n_zero_raises_memory_usage_error(
+        self, top_cap: CapabilitiesTop, isolated_home: Path, git_repo: Path
+    ) -> None:
+        with pytest.raises(MemoryUsageError) as exc_info:
+            top_cap.top(0)
+        assert exc_info.value.exit_code == 2
+
+    def test_top_n_negative_raises_memory_usage_error(
+        self, top_cap: CapabilitiesTop, isolated_home: Path, git_repo: Path
+    ) -> None:
+        with pytest.raises(MemoryUsageError) as exc_info:
+            top_cap.top(-1)
+        assert exc_info.value.exit_code == 2

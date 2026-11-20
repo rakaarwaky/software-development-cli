@@ -168,7 +168,12 @@ class TestCapabilitiesWriterWorkflowPrefixValidation:
         with pytest.raises(SpecError) as exc_info:
             writer.update({"run": {"description": "no prefix here"}})
         assert exc_info.value.exit_code == 4
-        assert "must start with one of" in str(exc_info.value)
+        assert "impl: " in str(exc_info.value)
+        assert "exec: " in str(exc_info.value)
+        assert "plan: " in str(exc_info.value)
+        assert "grill: " in str(exc_info.value)
+        assert "space" in str(exc_info.value)
+        assert "no prefix here" in str(exc_info.value)
 
     def test_run_with_valid_impl_prefix_succeeds(
         self, isolated_home: Path, git_repo: Path

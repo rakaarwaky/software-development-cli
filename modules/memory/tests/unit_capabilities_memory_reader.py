@@ -3,7 +3,8 @@
 Covers:
 - Missing file returns empty string ""
 - Existing file returns content verbatim
-- PermissionError propagates as OSError per FR-MEM-002
+- PermissionError is wrapped as MemoryHelperError (UX-S5-008)
+- UnicodeDecodeError is wrapped as MemoryHelperError (UX-S5-008)
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ from unittest.mock import patch
 import pytest
 
 from memory.src.capabilities_memory_reader import CapabilitiesReader
+from shared.src.common.taxonomy_sdc_error import MemoryHelperError
 from shared.src.memory.utility_memory_helper import memory_paths
 
 
@@ -40,7 +42,7 @@ class TestCapabilitiesReader:
         content = reader.read_content()
         assert content == expected_text
 
-    def test_permission_error_propagates(
+    def test_permission_error_wrapped_as_memory_helper_error(
         self, isolated_home: Path, git_repo: Path
     ) -> None:
         paths = memory_paths(create_dir=True)
@@ -52,7 +54,20 @@ class TestCapabilitiesReader:
 
         reader = CapabilitiesReader()
         with patch.object(Path, "read_text", mock_read_text):
-            with pytest.raises(PermissionError) as exc_info:
+            with pytest.raises(MemoryHelperError) as exc_info:
                 reader.read_content()
 
             assert "Access denied" in str(exc_info.value)
+
+    def test_unicode_decode_error_wrapped_as_memory_helper_error(
+        self, isolated_home: Path, git_repo: Path
+    ) -> None:
+        paths = memory_paths(create_dir=True)
+        file_path = paths["file"]
+        file_path.write_bytes(b"\xff\xfe\x00broken utf-8 \xc3\x28")
+
+        reader = CapabilitiesReader()
+        with pytest.raises(MemoryHelperError) as exc_info:
+            reader.read_content()
+
+        assert "decode" in str(exc_info.value).lower()

@@ -28,6 +28,7 @@ from shared.src.common.taxonomy_sdc_error import (
     HostError,
     LockTimeoutError,
     MemoryHelperError,
+    MemoryUsageError,
     PlanNotWiredError,
     PlanParseError,
     PlanUsageError,
@@ -308,7 +309,7 @@ def cmd_sdc(argv: list[str]) -> int:
         if args.subcommand == "validate-plan":
             return _dispatch_validate_plan(args)
         return 2
-    except (HostError, WorkspaceIdError, MemoryHelperError, PlanUsageError, PlanNotWiredError) as exc:
+    except (HostError, WorkspaceIdError, MemoryHelperError, MemoryUsageError, PlanUsageError, PlanNotWiredError) as exc:
         print(f"sdc: {exc}", file=sys.stderr)
         return exc.exit_code
     except LockTimeoutError as exc:

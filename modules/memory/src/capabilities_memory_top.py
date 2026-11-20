@@ -7,6 +7,7 @@ the top-N common issue patterns, optionally filtered by category.
 
 from __future__ import annotations
 
+from shared.src.common.taxonomy_sdc_error import MemoryHelperError
 from shared.src.common.taxonomy_sdc_vo import (
     PatternCategory,
     PatternCount,
@@ -43,6 +44,10 @@ class CapabilitiesTop(IMemoryTopProtocol):
         except FileNotFoundError:
             content = ""
             exists = False
+        except UnicodeDecodeError as exc:
+            raise MemoryHelperError(f"could not decode memory file {f} as UTF-8: {exc}")
+        except OSError as exc:
+            raise MemoryHelperError(f"could not read memory file {f}: {exc}")
         state = parse_memory_file(content)
         patterns, total = top_patterns(state, n=n, category=category)
         return MemoryResult(

@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from shared.src.common.taxonomy_sdc_error import SpecError
+from shared.src.common.taxonomy_sdc_error import MemoryHelperError, SpecError
 from shared.src.memory.contract_memory_protocol import IMemoryWriterProtocol
 from shared.src.memory.taxonomy_memory_request import MemoryResult, UpdateSpec
 from shared.src.memory.utility_memory_helper import (
@@ -54,7 +54,19 @@ class CapabilitiesWriter(IMemoryWriterProtocol):
         fd = acquire_lock(lock_path)
         try:
             existed_before = file_path.exists()
-            existing = file_path.read_text(encoding="utf-8") if existed_before else ""
+            if existed_before:
+                try:
+                    existing = file_path.read_text(encoding="utf-8")
+                except UnicodeDecodeError as exc:
+                    raise MemoryHelperError(
+                        f"could not decode existing memory file {file_path} as UTF-8: {exc}"
+                    )
+                except OSError as exc:
+                    raise MemoryHelperError(
+                        f"could not read existing memory file {file_path}: {exc}"
+                    )
+            else:
+                existing = ""
             state = parse_memory_file(existing)
             stats = merge_run(state, spec.data)
             new_content = render_memory_file(state)
@@ -90,7 +102,7 @@ class CapabilitiesWriter(IMemoryWriterProtocol):
 
         If run_spec is None or empty, the update is patterns-only and is allowed.
         If run_spec has a description field, it must start with one of
-        VALID_WORKFLOW_PREFIXES.
+        VALID_WORKFLOW_PREFIXES followed by a space.
         """
         if not run_spec:
             return  # no run entry — allowed (patterns-only update)
@@ -101,8 +113,9 @@ class CapabilitiesWriter(IMemoryWriterProtocol):
             raise SpecError('"run.description" must be a string')
         if not any(desc.startswith(p) for p in VALID_WORKFLOW_PREFIXES):
             raise SpecError(
-                f'"run.description" must start with one of {VALID_WORKFLOW_PREFIXES}; '
-                f"got: {desc[:50]!r}"
+                "run.description must start with a workflow prefix followed by "
+                "a space: 'impl: ', 'exec: ', 'plan: ', or 'grill: ' "
+                f"(e.g. 'impl: retry-logic feature'). Got: {desc[:50]!r}"
             )
 
     @classmethod

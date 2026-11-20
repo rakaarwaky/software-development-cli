@@ -39,6 +39,17 @@ class MemoryHelperError(SdcError):
     exit_code = 1
 
 
+class MemoryUsageError(SdcError):
+    """Raised when ``sdc memory`` receives an invalid flag or argument.
+
+    Reserved for caller-side usage errors (for example ``top --n`` with a
+    non-positive value) that warrant exit code 2, distinct from
+    ``SpecError`` (exit 4) for malformed update specs.
+    """
+
+    exit_code = 2
+
+
 class HostError(SdcError):
     """Raised when the host helper can't resolve the artifact root."""
 
